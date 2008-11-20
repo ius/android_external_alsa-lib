@@ -26,6 +26,15 @@
 #include <byteswap.h>
 #include "pcm_local.h"
 
+/* Bionic does not provide bswap_64() */
+#ifndef bswap_64
+#undef __ASM_ARM_BYTEORDER_H
+#include <asm/byteorder.h>
+#include <linux/byteorder/swab.h>
+
+#define bswap_64 __swab64
+#endif
+
 
 /**
  * \brief Return sign info for a PCM sample linear format

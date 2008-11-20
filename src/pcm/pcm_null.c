@@ -139,7 +139,6 @@ static int snd_pcm_null_start(snd_pcm_t *pcm)
 static int snd_pcm_null_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private_data;
-	assert(null->state != SND_PCM_STATE_OPEN);
 	null->state = SND_PCM_STATE_SETUP;
 	return 0;
 }
@@ -147,7 +146,6 @@ static int snd_pcm_null_drop(snd_pcm_t *pcm)
 static int snd_pcm_null_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private_data;
-	assert(null->state != SND_PCM_STATE_OPEN);
 	null->state = SND_PCM_STATE_SETUP;
 	return 0;
 }

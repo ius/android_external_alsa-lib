@@ -133,6 +133,9 @@ int snd_shm_area_destroy(struct snd_shm_area *area);
 
 int snd_user_file(const char *file, char **result);
 
+#if 0
+/* Bionic has struct timeval and struct timespec, but it does not define
+   _POSIX_C_SOURCE and _POSIX_SOURCE */
 #if !defined(_POSIX_C_SOURCE) && !defined(_POSIX_SOURCE)
 struct timeval {
 	time_t		tv_sec;		/* seconds */
@@ -144,11 +147,17 @@ struct timespec {
 	long		tv_nsec;	/* nanoseconds */
 };
 #endif
+#endif
 
 /** Timestamp */
 typedef struct timeval snd_timestamp_t;
 /** Hi-res timestamp */
 typedef struct timespec snd_htimestamp_t;
+
+/* The arm-eabi headers do not define O_ASYNC. */
+#ifndef O_ASYNC
+#define O_ASYNC FASYNC
+#endif
 
 /** \} */
 
