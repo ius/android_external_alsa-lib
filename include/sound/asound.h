@@ -59,6 +59,7 @@
 #ifndef __KERNEL__
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #endif
 
 /*
@@ -395,7 +396,8 @@ struct sndrv_pcm_sw_params {
 	sndrv_pcm_uframes_t silence_threshold;	/* min distance from noise for silence filling */
 	sndrv_pcm_uframes_t silence_size;	/* silence block size */
 	sndrv_pcm_uframes_t boundary;		/* pointers wrap point */
-	unsigned char reserved[64];		/* reserved for future */
+	unsigned char reserved[60];		/* reserved for future */
+	unsigned int period_event;		/* for alsa-lib implementation */
 };
 
 struct sndrv_pcm_channel_info {
@@ -723,7 +725,7 @@ struct sndrv_timer_tread {
  *                                                                          *
  ****************************************************************************/
 
-#define SNDRV_CTL_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 5)
+#define SNDRV_CTL_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 6)
 
 struct sndrv_ctl_card_info {
 	int card;			/* card number */
@@ -734,8 +736,7 @@ struct sndrv_ctl_card_info {
 	unsigned char longname[80];	/* name + info text about soundcard */
 	unsigned char reserved_[16];	/* reserved for future (was ID of mixer) */
 	unsigned char mixername[80];	/* visual mixer identification */
-	unsigned char components[80];	/* card components / fine identification, delimited with one space (AC97 etc..) */
-	unsigned char reserved[48];	/* reserved for future */
+	unsigned char components[128];	/* card components / fine identification, delimited with one space (AC97 etc..) */
 };
 
 enum sndrv_ctl_elem_type {

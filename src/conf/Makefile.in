@@ -36,7 +36,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 @BUILD_ALISP_TRUE@am__append_1 = sndo-mixer.alisp
 @BUILD_MODULES_TRUE@am__append_2 = smixer.conf
 subdir = src/conf
@@ -270,15 +269,12 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
 SUBDIRS = cards pcm
 cfg_files = alsa.conf $(am__append_1) $(am__append_2)
 EXTRA_DIST = $(cfg_files)
-alsadir = @ALSA_CONFIG_DIR@
+alsaconfigdir = @ALSA_CONFIG_DIR@
+alsadir = $(alsaconfigdir)
 alsa_DATA = $(cfg_files)
 all: all-recursive
 

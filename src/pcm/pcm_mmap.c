@@ -24,12 +24,11 @@
 #include <sys/poll.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
-#include <unistd.h>
 #include "pcm_local.h"
 
 size_t page_size(void)
 {
-	int s = getpagesize();
+	long s = sysconf(_SC_PAGE_SIZE);
 	assert(s > 0);
 	return s;
 }

@@ -1,6 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
 AC_INIT(src/control/control.c)
+
+AC_CONFIG_MACRO_DIR([m4])
+
 dnl *************************************************
 dnl current:revision:age
 dnl change (without API) = c:r+1:a
@@ -8,8 +11,8 @@ dnl change API = c+1:0:a
 dnl add API = c+1:0:a+1
 dnl remove API = c+1:0:0
 dnl *************************************************
-AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(alsa-lib, 1.0.16)
+AC_CANONICAL_HOST
+AM_INIT_AUTOMAKE(alsa-lib, 1.0.19)
 eval LIBTOOL_VERSION_INFO="2:0:0"
 dnl *************************************************
 AM_CONDITIONAL(INSTALL_M4, test -n "${ACLOCAL}")
@@ -19,15 +22,15 @@ AC_PREFIX_DEFAULT(/usr)
 dnl Checks for programs.
 
 dnl try to gues cross-compiler if not set
-if test "x$target" != "x$host" -a -z "`echo $CC | grep -e '-gcc'`";
+if test "x$host" != "x$build" -a -z "`echo $CC | grep -e '-gcc'`";
 then
   AC_MSG_CHECKING(for cross-compiler)
 
   which ${program_prefix}gcc >/dev/null 2>&1 && CC=${program_prefix}gcc
-  which ${target_cpu}-${target_os}-gcc >/dev/null 2>&1 \
-  && CC=${target_cpu}-${target-os}-gcc
-  which ${target_cpu}-${target_vendor}-${target_os}-gcc >/dev/null 2>&1 \
-  && CC=${target_cpu}-${target_vendor}-${target_os}-gcc
+  which ${host_cpu}-${host_os}-gcc >/dev/null 2>&1 \
+  && CC=${host_cpu}-${host-os}-gcc
+  which ${host_cpu}-${host_vendor}-${host_os}-gcc >/dev/null 2>&1 \
+  && CC=${host_cpu}-${host_vendor}-${host_os}-gcc
 
   AC_MSG_RESULT($CC)
 fi
@@ -41,10 +44,11 @@ AC_DISABLE_STATIC
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
+CC_NOUNDEFINED
+
 dnl Checks for header files.
 AC_HEADER_STDC
 AM_CONFIG_HEADER(include/config.h)
-
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -261,7 +265,7 @@ AC_SUBST(ALSA_DEPLIBS)
 
 dnl Check for architecture
 AC_MSG_CHECKING(for architecture)
-case "$target" in
+case "$host" in
 i?86*)
   AC_MSG_RESULT(x86)
   ;;
@@ -520,6 +524,9 @@ fi
 if test "$build_pcm_alaw" = "yes"; then
   AC_DEFINE([BUILD_PCM_PLUGIN_ALAW], "1", [Build PCM alaw plugin])
 fi
+if test "$build_pcm_mmap_emul" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_MMAP_EMUL], "1", [Build PCM mmap-emul plugin])
+fi
 
 
 dnl Create PCM plugin symbol list for static library
@@ -575,8 +582,8 @@ if test ! -L "$srcdir"/include/alsa ; then
   ln -sf . "$srcdir"/include/alsa
 fi
 
-AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
-	  include/sound/Makefile src/Versions src/Makefile \
+AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
+	  include/Makefile include/sound/Makefile src/Versions src/Makefile \
           src/control/Makefile src/mixer/Makefile \
 	  src/pcm/Makefile src/pcm/scopes/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \

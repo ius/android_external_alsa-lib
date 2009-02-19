@@ -394,6 +394,7 @@ call.
 
 \subsection pcm_status_fast Obtaining stream state fast and update r/w pointer
 
+<p>
 The function #snd_pcm_avail_update() updates the current
 available count of samples for writing (playback) or filled samples for
 reading (capture). This call is mandatory for updating actual r/w pointer.
@@ -401,15 +402,12 @@ Using standalone, it is a light method to obtain current stream position,
 because it does not require the user <-> kernel context switch, but the value
 is less accurate, because ring buffer pointers are updated in kernel drivers
 only when an interrupt occurs. If you want to get accurate stream state,
-use functions #snd_pcm_hwsync() or #snd_pcm_delay().
-Note that both of these functions do not update the current r/w pointer
-for applications, so the function #snd_pcm_avail_update() must
-be called afterwards before any read/write begin+commit operations.
+use functions #snd_pcm_avail(), #snd_pcm_delay() or #snd_pcm_avail_delay().
+</p>
 <p>
-The function #snd_pcm_hwsync() reads the current hardware pointer
-in the ring buffer from hardware. Note that this function does not update the current
-r/w pointer for applications, so the function #snd_pcm_avail_update()
-must be called afterwards before any read/write/begin+commit operations.
+The function #snd_pcm_avail() reads the current hardware pointer
+in the ring buffer from hardware and calls #snd_pcm_avail_update() then.
+</p>
 <p>
 The function #snd_pcm_delay() returns the delay in samples.
 For playback, it means count of samples in the ring buffer before
@@ -419,6 +417,11 @@ only when the stream is in the running or draining (playback only) state.
 Note that this function does not update the current r/w pointer for applications,
 so the function #snd_pcm_avail_update() must be called afterwards
 before any read/write begin+commit operations.
+</p>
+<p>
+The function #snd_pcm_avail_delay() combines #snd_pcm_avail() and
+#snd_pcm_delay() and returns both values in sync.
+</p>
 
 \section pcm_action Managing the stream state
 
@@ -879,6 +882,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	pcm->tstamp_mode = params->tstamp_mode;
 	pcm->period_step = params->period_step;
 	pcm->avail_min = params->avail_min;
+	pcm->period_event = params->period_event;
 	pcm->start_threshold = params->start_threshold;
 	pcm->stop_threshold = params->stop_threshold;
 	pcm->silence_threshold = params->silence_threshold;
@@ -914,7 +918,7 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 }
 
 /**
- * \brief Synchronize stream position with hardware
+ * \brief (DEPRECATED) Synchronize stream position with hardware
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
  *
@@ -931,6 +935,9 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 	}
 	return pcm->fast_ops->hwsync(pcm->fast_op_arg);
 }
+#ifndef DOC_HIDDEN
+link_warning(snd_pcm_hwsync, "Warning: snd_pcm_hwsync() is deprecated, consider to use snd_pcm_avail()");
+#endif
 
 /**
  * \brief Obtain delay for a running PCM handle
@@ -938,11 +945,23 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
  * \param delayp Returned delay in frames
  * \return 0 on success otherwise a negative error code
  *
- * Delay is distance between current application frame position and
- * sound frame position.
- * It's positive and less than buffer size in normal situation,
- * negative on playback underrun and greater than buffer size on
- * capture overrun.
+ * For playback the delay is defined as the time that a frame that is written
+ * to the PCM stream shortly after this call will take to be actually
+ * audible. It is as such the overall latency from the write call to the final
+ * DAC.
+ *
+ * For capture the delay is defined as the time that a frame that was
+ * digitized by the audio device takes until it can be read from the PCM
+ * stream shortly after this call returns. It is as such the overall latency
+ * from the initial ADC to the read call.
+ *
+ * Please note that hence in case of a playback underrun this value will not
+ * necessarily got down to 0.
+ *
+ * If the application is interested in the fill level of the playback buffer
+ * of the device, it should use #snd_pcm_avail*() functions. The
+ * value returned by that call is not directly related to the delay, since the
+ * latter might include some additional, fixed latencies the former does not.
  *
  * Note this function does not update the actual r/w pointer
  * for applications. The function #snd_pcm_avail_update()
@@ -1112,6 +1131,25 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 }
 
 /**
+ * \brief Get safe count of frames which can be rewinded
+ * \param pcm PCM handle
+ * \return a positive number of frames or negative error code
+ *
+ * Note: The snd_pcm_rewind() can accept bigger value than returned
+ * by this function. But it is not guaranteed that output stream
+ * will be consistent with bigger value.
+ */
+snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	return pcm->fast_ops->rewindable(pcm->fast_op_arg);
+}
+
+/**
  * \brief Move application frame position backward
  * \param pcm PCM handle
  * \param frames wanted displacement in frames
@@ -1128,6 +1166,25 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	if (frames == 0)
 		return 0;
 	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
+}
+
+/**
+ * \brief Get safe count of frames which can be forwarded
+ * \param pcm PCM handle
+ * \return a positive number of frames or negative error code
+ *
+ * Note: The snd_pcm_forward() can accept bigger value than returned
+ * by this function. But it is not guaranteed that output stream
+ * will be consistent with bigger value.
+ */
+snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	return pcm->fast_ops->forwardable(pcm->fast_op_arg);
 }
 
 /**
@@ -1222,7 +1279,7 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  * \brief Read interleaved frames from a PCM
  * \param pcm PCM handle
  * \param buffer frames containing buffer
- * \param size frames to be written
+ * \param size frames to be read
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
@@ -1254,7 +1311,7 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  * \brief Read non interleaved frames to a PCM
  * \param pcm PCM handle
  * \param bufs frames containing buffers (one for each channel)
- * \param size frames to be written
+ * \param size frames to be read
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
@@ -1415,12 +1472,12 @@ int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 #define SUBFORMATD(v, d) [SND_PCM_SUBFORMAT_##v] = d 
 
 
-static const char *snd_pcm_stream_names[] = {
+static const char *const snd_pcm_stream_names[] = {
 	STREAM(PLAYBACK),
 	STREAM(CAPTURE),
 };
 
-static const char *snd_pcm_state_names[] = {
+static const char *const snd_pcm_state_names[] = {
 	STATE(OPEN),
 	STATE(SETUP),
 	STATE(PREPARED),
@@ -1432,7 +1489,7 @@ static const char *snd_pcm_state_names[] = {
 	STATE(DISCONNECTED),
 };
 
-static const char *snd_pcm_access_names[] = {
+static const char *const snd_pcm_access_names[] = {
 	ACCESS(MMAP_INTERLEAVED), 
 	ACCESS(MMAP_NONINTERLEAVED),
 	ACCESS(MMAP_COMPLEX),
@@ -1440,7 +1497,7 @@ static const char *snd_pcm_access_names[] = {
 	ACCESS(RW_NONINTERLEAVED),
 };
 
-static const char *snd_pcm_format_names[] = {
+static const char *const snd_pcm_format_names[] = {
 	FORMAT(S8),
 	FORMAT(U8),
 	FORMAT(S16_LE),
@@ -1481,7 +1538,7 @@ static const char *snd_pcm_format_names[] = {
 	FORMAT(U18_3BE),
 };
 
-static const char *snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
+static const char *const snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
 	FORMAT(S16),
 	FORMAT(U16),
 	FORMAT(S24),
@@ -1493,7 +1550,7 @@ static const char *snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
 	FORMAT(IEC958_SUBFRAME),
 };
 
-static const char *snd_pcm_format_descriptions[] = {
+static const char *const snd_pcm_format_descriptions[] = {
 	FORMATD(S8, "Signed 8 bit"), 
 	FORMATD(U8, "Unsigned 8 bit"),
 	FORMATD(S16_LE, "Signed 16 bit Little Endian"),
@@ -1534,7 +1591,7 @@ static const char *snd_pcm_format_descriptions[] = {
 	FORMATD(U18_3BE, "Unsigned 18 bit Big Endian in 3bytes"),
 };
 
-static const char *snd_pcm_type_names[] = {
+static const char *const snd_pcm_type_names[] = {
 	PCMTYPE(HW), 
 	PCMTYPE(HOOKS), 
 	PCMTYPE(MULTI), 
@@ -1566,25 +1623,25 @@ static const char *snd_pcm_type_names[] = {
         PCMTYPE(EXTPLUG),
 };
 
-static const char *snd_pcm_subformat_names[] = {
+static const char *const snd_pcm_subformat_names[] = {
 	SUBFORMAT(STD), 
 };
 
-static const char *snd_pcm_subformat_descriptions[] = {
+static const char *const snd_pcm_subformat_descriptions[] = {
 	SUBFORMATD(STD, "Standard"), 
 };
 
-static const char *snd_pcm_start_mode_names[] = {
+static const char *const snd_pcm_start_mode_names[] = {
 	START(EXPLICIT),
 	START(DATA),
 };
 
-static const char *snd_pcm_xrun_mode_names[] = {
+static const char *const snd_pcm_xrun_mode_names[] = {
 	XRUN(NONE),
 	XRUN(STOP),
 };
 
-static const char *snd_pcm_tstamp_mode_names[] = {
+static const char *const snd_pcm_tstamp_mode_names[] = {
 	TSTAMP(NONE),
 	TSTAMP(ENABLE),
 };
@@ -1809,6 +1866,7 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	snd_output_printf(out, "  tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
 	snd_output_printf(out, "  period_step  : %d\n", pcm->period_step);
 	snd_output_printf(out, "  avail_min    : %ld\n", pcm->avail_min);
+	snd_output_printf(out, "  period_event : %i\n", pcm->period_event);
 	snd_output_printf(out, "  start_threshold  : %ld\n", pcm->start_threshold);
 	snd_output_printf(out, "  stop_threshold   : %ld\n", pcm->stop_threshold);
 	snd_output_printf(out, "  silence_threshold: %ld\n", pcm->silence_threshold);
@@ -1977,7 +2035,7 @@ snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler)
 	return handler->u.pcm;
 }
 
-static char *build_in_pcms[] = {
+static const char *const build_in_pcms[] = {
 	"adpcm", "alaw", "copy", "dmix", "file", "hooks", "hw", "ladspa", "lfloat",
 	"linear", "meter", "mulaw", "multi", "null", "empty", "plug", "rate", "route", "share",
 	"shm", "dsnoop", "dshare", "asym", "iec958", "softvol", "mmap_emul",
@@ -2071,7 +2129,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		sprintf(buf, "_snd_pcm_%s_open", str);
 	}
 	if (!lib) {
-		char **build_in = build_in_pcms;
+		const char *const *build_in = build_in_pcms;
 		while (*build_in) {
 			if (!strcmp(*build_in, str))
 				break;
@@ -2345,7 +2403,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 #endif
 
 /**
- * \brief Return number of frames ready to be read/written
+ * \brief Return number of frames ready to be read (capture) / written (playback)
  * \param pcm PCM handle
  * \return a positive number of frames ready otherwise a negative
  * error code
@@ -2353,12 +2411,78 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
  * On capture does all the actions needed to transport to application
  * level all the ready frames across underlying layers.
  *
- * Using of this function is useless for the standard read/write
- * operations. Use it only for mmap access. See to #snd_pcm_delay.
+ * The position is not synced with hardware (driver) position in the sound
+ * ring buffer in this function. This function is a light version of
+ * #snd_pcm_avail() .
+ *
+ * Using this function is ideal after poll() or select() when audio
+ * file descriptor made the event and when application expects just period
+ * timing.
+ *
+ * Also this function might be called after #snd_pcm_delay() or
+ * #snd_pcm_hwsync() functions to move private ring buffer pointers
+ * in alsa-lib (the internal plugin chain).
  */
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
 	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+}
+
+/**
+ * \brief Return number of frames ready to be read (capture) / written (playback)
+ * \param pcm PCM handle
+ * \return a positive number of frames ready otherwise a negative
+ * error code
+ *
+ * On capture does all the actions needed to transport to application
+ * level all the ready frames across underlying layers.
+ *
+ * The position is synced with hardware (driver) position in the sound
+ * ring buffer in this functions.
+ */
+snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
+{
+	int err;
+
+	assert(pcm);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	err = pcm->fast_ops->hwsync(pcm->fast_op_arg);
+	if (err < 0)
+		return err;
+	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+}
+
+/**
+ * \brief Combine snd_pcm_avail and snd_pcm_delay functions
+ * \param pcm PCM handle
+ * \param avail Number of available frames in the ring buffer
+ * \param delay Total I/O latency in frames
+ * \return zero on success otherwise a negative error code
+ *
+ * The avail and delay values retuned are in sync.
+ */
+int snd_pcm_avail_delay(snd_pcm_t *pcm,
+			snd_pcm_sframes_t *availp,
+			snd_pcm_sframes_t *delayp)
+{
+	snd_pcm_sframes_t sf;
+
+	assert(pcm && availp && delayp);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	sf = pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
+	if (sf < 0)
+		return (int)sf;
+	sf = pcm->fast_ops->avail_update(pcm->fast_op_arg);
+	if (sf < 0)
+		return (int)sf;
+	*availp = sf;
+	return 0;
 }
 
 /**
@@ -2809,6 +2933,27 @@ int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_BLOCK_TRANSFER);
+}
+
+/**
+ * \brief Check, if timestamps are monotonic for given configuration
+ * \param params Configuration space
+ * \return Boolean value
+ * \retval 0 Device doesn't do monotomic timestamps
+ * \retval 1 Device does monotonic timestamps
+ *
+ * It is not allowed to call this function when given configuration is not exactly one.
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
+ * from the configuration space.
+ */
+int snd_pcm_hw_params_is_monotonic(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	if (CHECK_SANITY(params->info == ~0U)) {
+		SNDMSG("invalid PCM info field");
+		return 0; /* FIXME: should be a negative error? */
+	}
+	return !!(params->info & SND_PCM_INFO_MONOTONIC);
 }
 
 /**
@@ -5305,6 +5450,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	params->period_step = pcm->period_step;
 	params->sleep_min = 0;
 	params->avail_min = pcm->avail_min;
+	params->period_event = pcm->period_event;
 	params->xfer_align = 1;
 	params->start_threshold = pcm->start_threshold;
 	params->stop_threshold = pcm->stop_threshold;
@@ -5600,6 +5746,34 @@ int snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params, snd_pcm_u
 	return 0;
 }
 
+/**
+ * \brief Set period event inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val 0 = disable period event, 1 = enable period event
+ * \return 0 otherwise a negative error code
+ *
+ * An poll (select) wakeup event is raised if enabled.
+ */
+int snd_pcm_sw_params_set_period_event(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, int val)
+{
+	assert(pcm && params);
+	params->period_event = val;
+	return 0;
+}
+
+/**
+ * \brief Get period event from a software configuration container
+ * \param params Software configuration container
+ * \param val returned period event state
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_sw_params_get_period_event(const snd_pcm_sw_params_t *params, int *val)
+{
+	assert(params && val);
+	*val = params->period_event;
+	return 0;
+}
 
 /**
  * \brief (DEPRECATED) Set xfer align inside a software configuration container
@@ -5882,6 +6056,10 @@ snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
  * \brief Get trigger timestamp from a PCM status container
  * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
+ *
+ * Trigger means a PCM state transition (from stopped to running or
+ * versa vice). It applies also to pause and suspend. In other words,
+ * timestamp contains time when stream started or when it was stopped.
  */
 void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
 {
@@ -5894,6 +6072,10 @@ void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestam
  * \brief Get trigger hi-res timestamp from a PCM status container
  * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
+ *
+ * Trigger means a PCM state transition (from stopped to running or
+ * versa vice). It applies also to pause and suspend. In other words,
+ * timestamp contains time when stream started or when it was stopped.
  */
 #ifndef DOXYGEN
 void INTERNAL(snd_pcm_status_get_trigger_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
@@ -6508,7 +6690,7 @@ link_warning(_snd_pcm_mmap_hw_ptr, "Warning: _snd_pcm_mmap_hw_ptr() is deprecate
 link_warning(_snd_pcm_boundary, "Warning: _snd_pcm_boundary() is deprecated, consider to use snd_pcm_sw_params_current()");
 #endif
 
-static const char *names[SND_PCM_HW_PARAM_LAST_INTERVAL + 1] = {
+static const char *const names[SND_PCM_HW_PARAM_LAST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_FORMAT] = "format",
 	[SND_PCM_HW_PARAM_CHANNELS] = "channels",
 	[SND_PCM_HW_PARAM_RATE] = "rate",
@@ -6654,7 +6836,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 
 int snd_pcm_conf_generic_id(const char *id)
 {
-	static const char *ids[] = { "comment", "type", "hint" };
+	static const char ids[3][8] = { "comment", "type", "hint" };
 	unsigned int k;
 	for (k = 0; k < sizeof(ids) / sizeof(ids[0]); ++k) {
 		if (strcmp(id, ids[k]) == 0)

@@ -654,7 +654,7 @@ static int hw_param_interval_refine_minmax(snd_pcm_hw_params_t *params,
 int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
-	static snd_mask_t access = { .bits = { 
+	static const snd_mask_t access = { .bits = { 
 					(1<<SNDRV_PCM_ACCESS_MMAP_INTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_RW_INTERLEAVED) |
@@ -1107,7 +1107,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 				snd_pcm_info_get_subdevice(info) * 2 + capture);
 	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 	if (ret < 0) {
-		dmix->tread = 1;
+		dmix->tread = 0;
 		ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK);
 		if (ret < 0) {
 			SNDERR("unable to open timer '%s'", name);
@@ -1293,7 +1293,7 @@ int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 	const snd_pcm_channel_area_t *dst_areas;
 	const snd_pcm_channel_area_t *src_areas;
 
-	bits = snd_pcm_format_physical_width(dmix->type);
+	bits = snd_pcm_format_physical_width(pcm->format);
 	if ((bits % 8) != 0)
 		interleaved = 0;
 	channels = dmix->channels;

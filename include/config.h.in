@@ -33,6 +33,9 @@
 /* Build PCM lfloat plugin */
 #undef BUILD_PCM_PLUGIN_LFLOAT
 
+/* Build PCM mmap-emul plugin */
+#undef BUILD_PCM_PLUGIN_MMAP_EMUL
+
 /* Build PCM mulaw plugin */
 #undef BUILD_PCM_PLUGIN_MULAW
 

@@ -26,6 +26,7 @@
  *
  */
   
+#include <endian.h>
 #include <byteswap.h>
 #include <ctype.h>
 #include "pcm_local.h"
@@ -39,8 +40,19 @@ const char *_snd_module_pcm_file = "";
 #ifndef DOC_HIDDEN
 
 typedef enum _snd_pcm_file_format {
-	SND_PCM_FILE_FORMAT_RAW
+	SND_PCM_FILE_FORMAT_RAW,
+	SND_PCM_FILE_FORMAT_WAV
 } snd_pcm_file_format_t;
+
+/* WAV format chunk */
+struct wav_fmt {
+	short fmt;
+	short chan;
+	int rate;
+	int bps;
+	short bwidth;
+	short bits;
+};
 
 typedef struct {
 	snd_pcm_generic_t gen;
@@ -60,14 +72,97 @@ typedef struct {
 	char *rbuf;
 	snd_pcm_channel_area_t *wbuf_areas;
 	size_t buffer_bytes;
+	struct wav_fmt wav_header;
+	size_t filelen;
 } snd_pcm_file_t;
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define TO_LE32(x)	(x)
+#define TO_LE16(x)	(x)
+#else
+#define TO_LE32(x)	bswap_32(x)
+#define TO_LE16(x)	bswap_16(x)
+#endif
+
+static void setup_wav_header(snd_pcm_t *pcm, struct wav_fmt *fmt)
+{
+	fmt->fmt = TO_LE16(0x01);
+	fmt->chan = TO_LE16(pcm->channels);
+	fmt->rate = TO_LE32(pcm->rate);
+	fmt->bwidth = pcm->frame_bits / 8;
+	fmt->bps = fmt->bwidth * pcm->rate;
+	fmt->bits = snd_pcm_format_width(pcm->format);
+	fmt->bps = TO_LE32(fmt->bps);
+	fmt->bwidth = TO_LE16(fmt->bwidth);
+	fmt->bits = TO_LE16(fmt->bits);
+}
+
+static int write_wav_header(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	static const char header[] = {
+		'R', 'I', 'F', 'F',
+		0x24, 0, 0, 0,
+		'W', 'A', 'V', 'E',
+		'f', 'm', 't', ' ',
+		0x10, 0, 0, 0,
+	};
+	static const char header2[] = {
+		'd', 'a', 't', 'a',
+		0, 0, 0, 0
+	};
+	
+	setup_wav_header(pcm, &file->wav_header);
+
+	if (write(file->fd, header, sizeof(header)) != sizeof(header) ||
+	    write(file->fd, &file->wav_header, sizeof(file->wav_header)) !=
+	    sizeof(file->wav_header) ||
+	    write(file->fd, header2, sizeof(header2)) != sizeof(header2)) {
+		int err = errno;
+		SYSERR("Write error.\n");
+		return -err;
+	}
+	return 0;
+}
+
+/* fix up the length fields in WAV header */
+static void fixup_wav_header(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	int len, ret;
+
+	/* RIFF length */
+	if (lseek(file->fd, 4, SEEK_SET) == 4) {
+		len = (file->filelen + 0x24) > 0x7fffffff ?
+			0x7fffffff : (int)(file->filelen + 0x24);
+		len = TO_LE32(len);
+		ret = write(file->fd, &len, 4);
+		if (ret < 0)
+			return;
+	}
+	/* data length */
+	if (lseek(file->fd, 0x28, SEEK_SET) == 0x28) {
+		len = file->filelen > 0x7fffffff ?
+			0x7fffffff : (int)file->filelen;
+		len = TO_LE32(len);
+		ret = write(file->fd, &len, 4);
+		if (ret < 0)
+			return;
+	}
+}
 #endif /* DOC_HIDDEN */
 
 static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	assert(bytes <= file->wbuf_used_bytes);
+
+	if (file->format == SND_PCM_FILE_FORMAT_WAV &&
+	    !file->wav_header.fmt) {
+		if (write_wav_header(pcm) < 0)
+			return;
+	}
+
 	while (bytes > 0) {
 		snd_pcm_sframes_t err;
 		size_t n = bytes;
@@ -84,6 +179,7 @@ static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 		file->file_ptr_bytes += err;
 		if (file->file_ptr_bytes == file->wbuf_size_bytes)
 			file->file_ptr_bytes = 0;
+		file->filelen += err;
 		if ((snd_pcm_uframes_t)err != n)
 			break;
 	}
@@ -122,6 +218,8 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	if (file->fname) {
+		if (file->wav_header.fmt)
+			fixup_wav_header(pcm);
 		free((void *)file->fname);
 		close(file->fd);
 	}
@@ -167,6 +265,16 @@ static int snd_pcm_file_drain(snd_pcm_t *pcm)
 	return err;
 }
 
+static snd_pcm_sframes_t snd_pcm_file_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_sframes_t res = snd_pcm_rewindable(pcm);
+	snd_pcm_sframes_t n = snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
+	if (res > n)
+		res = n;
+	return res;
+}
+
 static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -183,6 +291,16 @@ static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		file->wbuf_used_bytes -= n;
 	}
 	return err;
+}
+
+static snd_pcm_sframes_t snd_pcm_file_forwardable(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_sframes_t res = snd_pcm_forwardable(pcm);
+	snd_pcm_sframes_t n = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
+	if (res > n)
+		res = n;
+	return res;
 }
 
 static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -231,21 +349,19 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n /* , bytesn */;
+	snd_pcm_sframes_t n;
 
+	n = snd_pcm_readi(file->gen.slave, buffer, size);
+	if (n <= 0)
+		return n;
 	if (file->ifd >= 0) {
-		n = /* bytesn = */ read(file->ifd, buffer, size * pcm->frame_bits / 8);
-		if (n > 0)
-			n = n * 8 / pcm->frame_bits;
-		/* SNDERR("DEBUG: channels = %d, sample_bits = %d, frame_bits = %d, bytes = %d, frames = %d",
-		        pcm->channels, pcm->sample_bits, pcm->frame_bits, bytesn, n); */
-	} else {
-		n = snd_pcm_readi(file->gen.slave, buffer, size);
-		if (n > 0) {
-			snd_pcm_areas_from_buf(pcm, areas, buffer);
-			snd_pcm_file_add_frames(pcm, areas, 0, n);
-		}
+		n = read(file->ifd, buffer, n * pcm->frame_bits / 8);
+		if (n < 0)
+			return n;
+		return n * 8 / pcm->frame_bits;
 	}
+	snd_pcm_areas_from_buf(pcm, areas, buffer);
+	snd_pcm_file_add_frames(pcm, areas, 0, n);
 	return n;
 }
 
@@ -344,7 +460,7 @@ static void snd_pcm_file_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(file->gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_file_ops = {
+static const snd_pcm_ops_t snd_pcm_file_ops = {
 	.close = snd_pcm_file_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_generic_hw_refine,
@@ -359,7 +475,7 @@ static snd_pcm_ops_t snd_pcm_file_ops = {
 	.munmap = snd_pcm_generic_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	.status = snd_pcm_generic_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,
@@ -370,7 +486,9 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	.drop = snd_pcm_file_drop,
 	.drain = snd_pcm_file_drain,
 	.pause = snd_pcm_generic_pause,
+	.rewindable = snd_pcm_file_rewindable,
 	.rewind = snd_pcm_file_rewind,
+	.forwardable = snd_pcm_file_forwardable,
 	.forward = snd_pcm_file_forward,
 	.resume = snd_pcm_generic_resume,
 	.link = snd_pcm_generic_link,
@@ -396,7 +514,8 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  * \param ifname Input filename (or NULL if file descriptor ifd is available)
  * \param ifd Input file descriptor (if (ifd < 0) && (ifname == NULL), no input
  *            redirection will be performed)
- * \param fmt File format ("raw" is supported only)
+ * \param trunc Truncate the file if it already exists
+ * \param fmt File format ("raw" or "wav" are available)
  * \param perm File permission
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
@@ -406,27 +525,52 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
-		      const char *fname, int fd, const char *ifname, int ifd, 
+		      const char *fname, int fd, const char *ifname, int ifd,
+		      int trunc,
 		      const char *fmt, int perm, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
 	snd_pcm_file_format_t format;
 	struct timespec timespec;
+	char *tmpname = NULL;
 	int err;
 
 	assert(pcmp);
 	if (fmt == NULL ||
 	    strcmp(fmt, "raw") == 0)
 		format = SND_PCM_FILE_FORMAT_RAW;
+	else if (!strcmp(fmt, "wav"))
+		format = SND_PCM_FILE_FORMAT_WAV;
 	else {
 		SNDERR("file format %s is unknown", fmt);
 		return -EINVAL;
 	}
 	if (fname) {
-		fd = open(fname, O_WRONLY|O_CREAT, perm);
+		if (trunc)
+			fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC, perm);
+		else {
+			fd = open(fname, O_WRONLY|O_CREAT|O_EXCL, perm);
+			if (fd < 0) {
+				int idx, len;
+				len = strlen(fname) + 6;
+				tmpname = malloc(len);
+				if (!tmpname)
+					return -ENOMEM;
+				for (idx = 1; idx < 10000; idx++) {
+					snprintf(tmpname, len,
+						 "%s.%04d", fname, idx);
+					fd = open(tmpname, O_WRONLY|O_CREAT|O_EXCL, perm);
+					if (fd >= 0) {
+						fname = tmpname;
+						break;
+					}
+				}
+			}
+		}
 		if (fd < 0) {
 			SYSERR("open %s for writing failed", fname);
+			free(tmpname);
 			return -errno;
 		}
 	}
@@ -434,6 +578,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (!file) {
 		if (fname)
 			close(fd);
+		free(tmpname);
 		return -ENOMEM;
 	}
 
@@ -443,6 +588,8 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			SYSERR("open %s for reading failed", ifname);
 			if (fname)
 				close(fd);
+			free(file);
+			free(tmpname);
 			return -errno;
 		}
 	}
@@ -461,6 +608,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0) {
 		free(file->fname);
 		free(file);
+		free(tmpname);
 		return err;
 	}
 	pcm->ops = &snd_pcm_file_ops;
@@ -469,7 +617,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
 	pcm->mmap_shadow = 1;
-#ifdef HAVE_CLOCK_GETTIME
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 	pcm->monotonic = clock_gettime(CLOCK_MONOTONIC, &timespec) == 0;
 #else
 	pcm->monotonic = 0;
@@ -478,6 +626,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
 
+	free(tmpname);
 	return 0;
 }
 
@@ -501,10 +650,10 @@ pcm.name {
 	file STR		# Output filename
 	or
 	file INT		# Output file descriptor number
-	infile STR		# Input filename
+	infile STR		# Input filename - only raw format
 	or
 	infile INT		# Input file descriptor number
-	[format STR]		# File format (only "raw" at the moment)
+	[format STR]		# File format ("raw" or "wav")
 	[perm INT]		# Output file permission (octal, def. 0600)
 }
 \endcode
@@ -541,7 +690,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *slave = NULL, *sconf;
 	const char *fname = NULL, *ifname = NULL;
 	const char *format = NULL;
-	long fd = -1, ifd = -1;
+	long fd = -1, ifd = -1, trunc = 1;
 	long perm = 0600;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -596,8 +745,26 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "truncate") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				return -EINVAL;
+			trunc = err;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
+	}
+	if (!format) {
+		snd_config_t *n;
+		/* read defaults */
+		if (snd_config_search(root, "defaults.pcm.file_format", &n) >= 0) {
+			err = snd_config_get_string(n, &format);
+			if (err < 0) {
+				SNDERR("Invalid file format");
+				return -EINVAL;
+			}
+		}
 	}
 	if (!slave) {
 		SNDERR("slave is not defined");
@@ -606,7 +773,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 	if (err < 0)
 		return err;
-	if (!fname && fd < 0) {
+	if (!fname && fd < 0 && !ifname) {
 		snd_config_delete(sconf);
 		SNDERR("file is not defined");
 		return -EINVAL;
@@ -615,7 +782,8 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_file_open(pcmp, name, fname, fd, ifname, ifd, format, perm, spcm, 1);
+	err = snd_pcm_file_open(pcmp, name, fname, fd, ifname, ifd,
+				trunc, format, perm, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

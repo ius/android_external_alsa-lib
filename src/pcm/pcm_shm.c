@@ -508,6 +508,11 @@ static int snd_pcm_shm_pause(snd_pcm_t *pcm, int enable)
 	return snd_pcm_shm_action(pcm);
 }
 
+static snd_pcm_sframes_t snd_pcm_shm_rewindable(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;	/* FIX ME */
+}
+
 static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
@@ -515,6 +520,11 @@ static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	ctrl->cmd = SNDRV_PCM_IOCTL_REWIND;
 	ctrl->u.rewind.frames = frames;
 	return snd_pcm_shm_action(pcm);
+}
+
+static snd_pcm_sframes_t snd_pcm_shm_forwardable(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;	/* FIX ME */
 }
 
 static snd_pcm_sframes_t snd_pcm_shm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -581,7 +591,7 @@ static void snd_pcm_shm_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-static snd_pcm_ops_t snd_pcm_shm_ops = {
+static const snd_pcm_ops_t snd_pcm_shm_ops = {
 	.close = snd_pcm_shm_close,
 	.info = snd_pcm_shm_info,
 	.hw_refine = snd_pcm_shm_hw_refine,
@@ -596,7 +606,7 @@ static snd_pcm_ops_t snd_pcm_shm_ops = {
 	.munmap = snd_pcm_shm_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	.status = snd_pcm_shm_status,
 	.state = snd_pcm_shm_state,
 	.hwsync = snd_pcm_shm_hwsync,
@@ -607,7 +617,9 @@ static snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	.drop = snd_pcm_shm_drop,
 	.drain = snd_pcm_shm_drain,
 	.pause = snd_pcm_shm_pause,
+	.rewindable = snd_pcm_shm_rewindable,
 	.rewind = snd_pcm_shm_rewind,
+	.forwardable = snd_pcm_shm_forwardable,
 	.forward = snd_pcm_shm_forward,
 	.resume = snd_pcm_shm_resume,
 	.writei = snd_pcm_mmap_writei,

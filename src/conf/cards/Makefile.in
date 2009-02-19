@@ -36,7 +36,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 @BUILD_ALISP_TRUE@am__append_1 = aliases.alisp
 subdir = src/conf/cards
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -261,12 +260,9 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
-alsadir = @ALSA_CONFIG_DIR@/cards
+alsaconfigdir = @ALSA_CONFIG_DIR@
+alsadir = $(alsaconfigdir)/cards
 cfg_files = aliases.conf AACI.conf ATIIXP.conf ATIIXP-SPDMA.conf \
 	ATIIXP-MODEM.conf AU8810.conf AU8820.conf AU8830.conf \
 	Audigy.conf Audigy2.conf Aureon51.conf Aureon71.conf \
@@ -281,7 +277,7 @@ cfg_files = aliases.conf AACI.conf ATIIXP.conf ATIIXP-SPDMA.conf \
 	VIA8233A.conf VIA8237.conf VX222.conf VXPocket.conf \
 	VXPocket440.conf $(am__append_1)
 alsa_DATA = $(cfg_files)
-@BUILD_ALISP_TRUE@SI7018dir = @ALSA_CONFIG_DIR@/cards/SI7018
+@BUILD_ALISP_TRUE@SI7018dir = $(alsaconfigdir)/cards/SI7018
 @BUILD_ALISP_FALSE@SI7018_files = 
 @BUILD_ALISP_TRUE@SI7018_files = \
 @BUILD_ALISP_TRUE@	SI7018/sndoc-mixer.alisp \

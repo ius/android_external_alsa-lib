@@ -1,6 +1,5 @@
-pkglibdir = @ALSA_PLUGIN_DIR@/smixer
-pythonlibs = @PYTHON_LIBS@
-pythonincludes = @PYTHON_INCLUDES@
+alsaplugindir = @ALSA_PLUGIN_DIR@
+pkglibdir = $(alsaplugindir)/smixer
 
 AM_CFLAGS = -g -O2 -W -Wall
 
@@ -17,20 +16,20 @@ endif
 noinst_HEADERS = sbase.h
 
 smixer_sbase_la_SOURCES = sbase.c
-smixer_sbase_la_LDFLAGS = -module -avoid-version
+smixer_sbase_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
 smixer_sbase_la_LIBADD = ../../../src/libasound.la
 
 smixer_ac97_la_SOURCES = ac97.c sbasedl.c
-smixer_ac97_la_LDFLAGS = -module -avoid-version
+smixer_ac97_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
 smixer_ac97_la_LIBADD = ../../../src/libasound.la
 
 smixer_hda_la_SOURCES = hda.c sbasedl.c
-smixer_hda_la_LDFLAGS = -module -avoid-version
+smixer_hda_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
 smixer_hda_la_LIBADD = ../../../src/libasound.la
 
 if BUILD_PYTHON
 smixer_python_la_SOURCES = python.c
-smixer_python_la_LDFLAGS = -module -avoid-version $(pythonlibs)
-smixer_python_la_CFLAGS = $(pythonincludes)
-smixer_python_la_LIBADD = ../../../src/libasound.la
+smixer_python_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
+smixer_python_la_CFLAGS = $(PYTHON_INCLUDES)
+smixer_python_la_LIBADD = ../../../src/libasound.la $(PYTHON_LIBS)
 endif

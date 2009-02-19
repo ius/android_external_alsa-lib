@@ -501,7 +501,7 @@ static void snd_pcm_meter_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(meter->gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_meter_ops = {
+static const snd_pcm_ops_t snd_pcm_meter_ops = {
 	.close = snd_pcm_meter_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_meter_hw_refine,
@@ -516,7 +516,7 @@ static snd_pcm_ops_t snd_pcm_meter_ops = {
 	.munmap = snd_pcm_generic_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	.status = snd_pcm_generic_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,
@@ -527,7 +527,9 @@ static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	.drop = snd_pcm_generic_drop,
 	.drain = snd_pcm_generic_drain,
 	.pause = snd_pcm_generic_pause,
+	.rewindable = snd_pcm_generic_rewindable,
 	.rewind = snd_pcm_meter_rewind,
+	.forwardable = snd_pcm_generic_forwardable,
 	.forward = snd_pcm_meter_forward,
 	.resume = snd_pcm_generic_resume,
 	.writei = snd_pcm_mmap_writei,
@@ -601,7 +603,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 	snd_config_iterator_t i, next;
 	const char *id;
 	const char *lib = NULL, *open_name = NULL, *str = NULL;
-	snd_config_t *c, *type_conf;
+	snd_config_t *c, *type_conf = NULL;
 	int (*open_func)(snd_pcm_t *, const char *,
 			 snd_config_t *, snd_config_t *) = NULL;
 	snd_pcm_meter_t *meter = pcm->private_data;
@@ -1141,7 +1143,7 @@ static void s16_reset(snd_pcm_scope_t *scope)
 	s16->old = meter->now;
 }
 
-snd_pcm_scope_ops_t s16_ops = {
+static const snd_pcm_scope_ops_t s16_ops = {
 	.enable = s16_enable,
 	.disable = s16_disable,
 	.close = s16_close,

@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 SUBDIRS=doc include src
 if BUILD_MODULES
 SUBDIRS += modules
@@ -11,7 +13,8 @@ SUBDIRS += alsalisp
 endif
 endif
 SUBDIRS += test utils
-EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure hgcompile libtool depcomp version MEMORY-LEAK
+EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure gitcompile libtool \
+	   depcomp version MEMORY-LEAK m4/attributes.m4
 AUTOMAKE_OPTIONS=foreign
 
 INCLUDES=-I$(top_srcdir)/include

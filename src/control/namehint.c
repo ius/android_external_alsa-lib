@@ -84,10 +84,11 @@ static void zero_handler(const char *file ATTRIBUTE_UNUSED,
 {
 }
 
-static int get_dev_name1(struct hint_list *list, char **res)
+static int get_dev_name1(struct hint_list *list, char **res, int device,
+			 int stream)
 {
 	*res = NULL;
-	if (list->device < 0)
+	if (device < 0)
 		return 0;
 	switch (list->iface) {
 #ifdef BUILD_HWDEP
@@ -95,7 +96,7 @@ static int get_dev_name1(struct hint_list *list, char **res)
 		{
 			snd_hwdep_info_t *info;
 			snd_hwdep_info_alloca(&info);
-			snd_hwdep_info_set_device(info, list->device);
+			snd_hwdep_info_set_device(info, device);
 			if (snd_ctl_hwdep_info(list->ctl, info) < 0)
 				return 0;
 			*res = strdup(snd_hwdep_info_get_name(info));
@@ -107,8 +108,8 @@ static int get_dev_name1(struct hint_list *list, char **res)
 		{
 			snd_pcm_info_t *info;
 			snd_pcm_info_alloca(&info);
-			snd_pcm_info_set_device(info, list->device);
-			snd_pcm_info_set_stream(info, list->stream ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK);
+			snd_pcm_info_set_device(info, device);
+			snd_pcm_info_set_stream(info, stream ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK);
 			if (snd_ctl_pcm_info(list->ctl, info) < 0)
 				return 0;
 			switch (snd_pcm_info_get_class(info)) {
@@ -127,8 +128,8 @@ static int get_dev_name1(struct hint_list *list, char **res)
 		{
 			snd_rawmidi_info_t *info;
 			snd_rawmidi_info_alloca(&info);
-			snd_rawmidi_info_set_device(info, list->device);
-			snd_rawmidi_info_set_stream(info, list->stream ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
+			snd_rawmidi_info_set_device(info, device);
+			snd_rawmidi_info_set_stream(info, stream ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
 			if (snd_ctl_rawmidi_info(list->ctl, info) < 0)
 				return 0;
 			*res = strdup(snd_rawmidi_info_get_name(info));
@@ -143,14 +144,13 @@ static int get_dev_name1(struct hint_list *list, char **res)
 static char *get_dev_name(struct hint_list *list)
 {
 	char *str1, *str2, *res;
+	int device;
 	
-	list->device = list->device_input >= 0 ? list->device_input : list->device;
-	list->stream = 1;
-	if (get_dev_name1(list, &str1) < 0)
+	device = list->device_input >= 0 ? list->device_input : list->device;
+	if (get_dev_name1(list, &str1, device, 1) < 0)
 		return NULL;
-	list->device = list->device_output >= 0 ? list->device_input : list->device;
-	list->stream = 0;
-	if (get_dev_name1(list, &str2) < 0) {
+	device = list->device_output >= 0 ? list->device_output : list->device;
+	if (get_dev_name1(list, &str2, device, 0) < 0) {
 		if (str1)
 			free(str1);
 		return NULL;
@@ -197,10 +197,11 @@ static char *get_dev_name(struct hint_list *list)
 			free(str1);
 			return res;
 		}
-	} else {
-		return strdup(list->cardname);
 	}
-	return NULL;
+	/* if the specified device doesn't exist, skip this entry */
+	if (list->device >= 0 || list->device_input >= 0 || list->device_output >= 0)
+		return NULL;
+	return strdup(list->cardname);
 }
 
 #ifndef DOC_HIDDEN
@@ -304,8 +305,8 @@ static int try_config(struct hint_list *list,
 				err = -EINVAL;
 				goto __cleanup;
 			}
-			list->device_input = -1;
-			list->device_output = -1;
+			list->device_input = dev;
+			list->device_output = dev;
 		}
 		if (snd_config_search(cfg, "device_input", &n) >= 0) {
 			if (snd_config_get_integer(n, &list->device_input) < 0) {
@@ -391,7 +392,7 @@ static int try_config(struct hint_list *list,
 
 typedef int (*next_devices_t)(snd_ctl_t *, int *);
 
-static next_devices_t next_devices[] = {
+static const next_devices_t next_devices[] = {
 	IFACE(CARD, NULL),
 	IFACE(HWDEP, snd_ctl_hwdep_next_device),
 	IFACE(MIXER, NULL),

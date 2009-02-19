@@ -36,7 +36,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 subdir = include/sound
 DIST_COMMON = $(alsasoundinclude_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -262,11 +261,7 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
 alsasoundincludedir = ${includedir}/alsa/sound
 alsasoundinclude_HEADERS = asound_fm.h hdsp.h sb16_csp.h sscape_ioctl.h emu10k1.h \
 			   type_compat.h

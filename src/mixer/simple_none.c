@@ -89,7 +89,7 @@ typedef struct _selem_none {
 	} str[2];
 } selem_none_t;
 
-static struct mixer_name_table {
+static const struct mixer_name_table {
 	const char *longname;
 	const char *shortname;
 } name_table[] = {
@@ -106,7 +106,7 @@ static struct mixer_name_table {
 
 static const char *get_short_name(const char *lname)
 {
-	struct mixer_name_table *p;
+	const struct mixer_name_table *p;
 	for (p = name_table; p->longname; p++) {
 		if (!strcmp(lname, p->longname))
 			return p->shortname;
@@ -131,7 +131,7 @@ static int compare_mixer_priority_lookup(const char **name, const char * const *
 
 static int get_compare_weight(const char *name, unsigned int idx)
 {
-	static const char *names[] = {
+	static const char *const names[] = {
 		"Master",
 		"Headphone",
 		"Tone",
@@ -165,11 +165,11 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"Mix",
 		NULL
 	};
-	static const char *names1[] = {
+	static const char *const names1[] = {
 		"-",
 		NULL,
 	};
-	static const char *names2[] = {
+	static const char *const names2[] = {
 		"Mono",
 		"Digital",
 		"Switch",
@@ -809,14 +809,14 @@ static int simple_update(snd_mixer_elem_t *melem)
 	if (caps & (SM_CAP_GSWITCH|SM_CAP_CSWITCH))
 		caps |= SM_CAP_CSWITCH_JOIN;
 	if (caps & (SM_CAP_GVOLUME|SM_CAP_CVOLUME))
-		caps |= SM_CAP_PVOLUME_JOIN;
+		caps |= SM_CAP_CVOLUME_JOIN;
 	if (pchannels > 1 || cchannels > 1) {
 		if (simple->ctls[CTL_SINGLE].elem &&
 		    simple->ctls[CTL_SINGLE].values > 1) {
 			if (caps & SM_CAP_GSWITCH)
-				caps &= ~SM_CAP_PSWITCH_JOIN;
+				caps &= ~(SM_CAP_PSWITCH_JOIN|SM_CAP_CSWITCH_JOIN);
 			else
-				caps &= ~SM_CAP_PVOLUME_JOIN;
+				caps &= ~(SM_CAP_PVOLUME_JOIN|SM_CAP_CVOLUME_JOIN);
 		}
 		if (simple->ctls[CTL_GLOBAL_ROUTE].elem ||
 		    (simple->ctls[CTL_GLOBAL_SWITCH].elem &&
@@ -883,7 +883,7 @@ static int simple_update(snd_mixer_elem_t *melem)
 }	   
 
 #ifndef DOC_HIDDEN
-static struct suf {
+static const struct suf {
 	const char *suffix;
 	selem_ctl_type_t type;
 } suffixes[] = {
@@ -906,7 +906,7 @@ static struct suf {
 /* Return base length or 0 on failure */
 static int base_len(const char *name, selem_ctl_type_t *type)
 {
-	struct suf *p;
+	const struct suf *p;
 	size_t nlen = strlen(name);
 	p = suffixes;
 	while (p->suffix) {
@@ -946,6 +946,8 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 static int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return 0;
 	if (value < s->str[dir].min || value > s->str[dir].max)
@@ -1064,6 +1066,8 @@ static int get_volume_ops(snd_mixer_elem_t *elem, int dir,
 			  snd_mixer_selem_channel_id_t channel, long *value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return -EINVAL;
 	*value = s->str[dir].vol[channel];
@@ -1158,6 +1162,8 @@ static int get_dB_range_ops(snd_mixer_elem_t *elem, int dir,
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
 	selem_ctl_t *c;
 
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	c = get_selem_ctl(s, dir);
 	if (! c)
 		return -EINVAL;
@@ -1174,6 +1180,21 @@ static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 				       db_gain, value, xdir);
 }
 
+static int ask_vol_dB_ops(snd_mixer_elem_t *elem,
+			  int dir,
+			  long value,
+			  long *dBvalue)
+{
+	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	selem_ctl_t *c;
+
+	c = get_selem_ctl(s, dir);
+	if (! c)
+		return -EINVAL;
+	int res = convert_to_dB(c->elem, &s->str[dir], value, dBvalue);
+	return res;
+}
+
 static int get_dB_ops(snd_mixer_elem_t *elem,
                       int dir,
                       snd_mixer_selem_channel_id_t channel,
@@ -1184,6 +1205,8 @@ static int get_dB_ops(snd_mixer_elem_t *elem,
 	int err;
 	long volume, db_gain;
 
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	c = get_selem_ctl(s, dir);
 	if (! c)
 		return -EINVAL;
@@ -1201,6 +1224,8 @@ static int get_switch_ops(snd_mixer_elem_t *elem, int dir,
 			  snd_mixer_selem_channel_id_t channel, int *value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GSWITCH)
+		dir = SM_PLAY;
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return -EINVAL;
 	*value = !!(s->str[dir].sw & (1 << channel));
@@ -1219,6 +1244,20 @@ static int set_volume_ops(snd_mixer_elem_t *elem, int dir,
 	return 0;
 }
 
+static int ask_dB_vol_ops(snd_mixer_elem_t *elem, int dir,
+		          long dbValue, long *value, int xdir)
+{
+	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	selem_ctl_t *c;
+
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
+	c = get_selem_ctl(s, dir);
+	if (! c)
+		return -EINVAL;
+	return convert_from_dB(c->elem, &s->str[dir], dbValue, value, xdir);
+}
+
 static int set_dB_ops(snd_mixer_elem_t *elem, int dir,
 		      snd_mixer_selem_channel_id_t channel,
 		      long db_gain, int xdir)
@@ -1228,6 +1267,8 @@ static int set_dB_ops(snd_mixer_elem_t *elem, int dir,
 	long value;
 	int err;
 
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	c = get_selem_ctl(s, dir);
 	if (! c)
 		return -EINVAL;
@@ -1242,6 +1283,8 @@ static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
 {
 	int changed;
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GSWITCH)
+		dir = SM_PLAY;
 	if (dir == SM_PLAY) {
 		if (! (s->selem.caps & (SM_CAP_GSWITCH|SM_CAP_PSWITCH)))
 			return -EINVAL;
@@ -1350,6 +1393,8 @@ static struct sm_elem_ops simple_none_ops = {
 	.get_range	= get_range_ops,
 	.get_dB_range	= get_dB_range_ops,
 	.set_range	= set_range_ops,
+	.ask_vol_dB	= ask_vol_dB_ops,
+	.ask_dB_vol	= ask_dB_vol_ops,
 	.get_volume	= get_volume_ops,
 	.get_dB		= get_dB_ops,
 	.set_volume	= set_volume_ops,

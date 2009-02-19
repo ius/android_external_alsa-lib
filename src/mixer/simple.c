@@ -217,7 +217,7 @@ int snd_mixer_selem_has_common_switch(snd_mixer_elem_t *elem)
  */
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 {
-	static const char *array[SND_MIXER_SCHN_LAST + 1] = {
+	static const char *const array[SND_MIXER_SCHN_LAST + 1] = {
 		[SND_MIXER_SCHN_FRONT_LEFT] = "Front Left",
 		[SND_MIXER_SCHN_FRONT_RIGHT] = "Front Right",
 		[SND_MIXER_SCHN_REAR_LEFT] = "Rear Left",
@@ -355,6 +355,35 @@ int snd_mixer_selem_has_playback_switch_joined(snd_mixer_elem_t *elem)
 {
 	CHECK_BASIC(elem);
 	return COND_CAPS(elem, SM_CAP_PSWITCH_JOIN);
+}
+
+/**
+ * \brief Return corresponding dB value to an integer playback volume for a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param value value to be converted to dB range
+ * \param dBvalue pointer to returned dB value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_ask_playback_vol_dB(snd_mixer_elem_t *elem, long value, long *dBvalue)
+{
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_PVOLUME);
+	return sm_selem_ops(elem)->ask_vol_dB(elem, SM_PLAY, value, dBvalue);
+}
+
+/**
+ * \brief Return corresponding integer playback volume for given dB value for a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param value value to be converted to dB range
+ * \param dir select direction (-1 = accurate or first bellow, 0 = accurate, 1 = accurate or first above)
+ * \param dBvalue pointer to returned dB value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_ask_playback_dB_vol(snd_mixer_elem_t *elem, long dBvalue, int dir, long *value)
+{
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_PVOLUME);
+	return sm_selem_ops(elem)->ask_dB_vol(elem, SM_PLAY, dBvalue, value, dir);
 }
 
 /**
@@ -655,6 +684,35 @@ int snd_mixer_selem_get_capture_group(snd_mixer_elem_t *elem)
 	if (! (s->caps & SM_CAP_CSWITCH_EXCL))
 		return -EINVAL;
 	return s->capture_group;
+}
+
+/**
+ * \brief Return corresponding dB value to an integer capture volume for a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param value value to be converted to dB range
+ * \param dBvalue pointer to returned dB value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_ask_capture_vol_dB(snd_mixer_elem_t *elem, long value, long *dBvalue)
+{
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_CVOLUME);
+	return sm_selem_ops(elem)->ask_vol_dB(elem, SM_CAPT, value, dBvalue);
+}
+
+/**
+ * \brief Return corresponding integer capture volume for given dB value for a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param dBvalue dB value to be converted to integer range
+ * \param value pointer to returned integer value
+ * \param dir select direction (-1 = accurate or first bellow, 0 = accurate, 1 = accurate or first above)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_ask_capture_dB_vol(snd_mixer_elem_t *elem, long dBvalue, int dir, long *value)
+{
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_CVOLUME);
+	return sm_selem_ops(elem)->ask_dB_vol(elem, SM_CAPT, dBvalue, value, dir);
 }
 
 /**

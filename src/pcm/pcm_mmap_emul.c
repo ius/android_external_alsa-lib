@@ -62,11 +62,9 @@ static int snd_pcm_mmap_emul_hw_refine(snd_pcm_t *pcm,
 	snd_mask_none(&mask);
 	err = snd_pcm_hw_refine(map->gen.slave, params);
 	if (err < 0) {
-		/* try to use RW_* */
 		snd_pcm_hw_params_t new = *params;
 
-		if (!(params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)))
-			return err;
+		/* try to use RW_* */
 		if (snd_pcm_access_mask_test(&oldmask,
 					     SND_PCM_ACCESS_MMAP_INTERLEAVED) &&
 		    !snd_pcm_access_mask_test(&oldmask,
@@ -156,7 +154,7 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 	snd_pcm_hw_params_t old = *params;
 	snd_pcm_access_t access;
 	snd_pcm_access_mask_t oldmask;
-	const snd_mask_t *pmask;
+	snd_pcm_access_mask_t *pmask;
 	int err;
 
 	err = _snd_pcm_hw_params(map->gen.slave, params);
@@ -166,21 +164,20 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 	}
 
 	*params = old;
-	pmask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
-	oldmask = *(snd_pcm_access_mask_t *)pmask;
+	pmask = (snd_pcm_access_mask_t *)snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	oldmask = *pmask;
 	if (INTERNAL(snd_pcm_hw_params_get_access)(params, &access) < 0)
 		goto _err;
 	switch (access) {
 	case SND_PCM_ACCESS_MMAP_INTERLEAVED:
-		snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask,
+		snd_pcm_access_mask_reset(pmask,
 					  SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask,
-					SND_PCM_ACCESS_RW_INTERLEAVED);
+		snd_pcm_access_mask_set(pmask, SND_PCM_ACCESS_RW_INTERLEAVED);
 		break;
 	case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
-		snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask,
+		snd_pcm_access_mask_reset(pmask,
 					  SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-		snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask,
+		snd_pcm_access_mask_set(pmask,
 					SND_PCM_ACCESS_RW_NONINTERLEAVED);
 		break;
 	default:
@@ -191,7 +188,7 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 		goto _err;
 
 	/* need to back the access type to relieve apps */
-	*(snd_pcm_access_mask_t *)pmask = oldmask;
+	*pmask = oldmask;
 
 	/* OK, we do fake */
 	map->mmap_emul = 1;
@@ -332,7 +329,7 @@ static void snd_pcm_mmap_emul_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(map->gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
+static const snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
 	.close = snd_pcm_generic_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_mmap_emul_hw_refine,
@@ -347,7 +344,7 @@ static snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
 	.munmap = snd_pcm_generic_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
 	.status = snd_pcm_generic_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,
@@ -358,7 +355,9 @@ static snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
 	.drop = snd_pcm_generic_drop,
 	.drain = snd_pcm_generic_drain,
 	.pause = snd_pcm_generic_pause,
+	.rewindable = snd_pcm_generic_rewindable,
 	.rewind = snd_pcm_mmap_emul_rewind,
+	.forwardable = snd_pcm_generic_forwardable,
 	.forward = snd_pcm_mmap_emul_forward,
 	.resume = snd_pcm_generic_resume,
 	.link = snd_pcm_generic_link,
@@ -376,8 +375,9 @@ static snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
 	.poll_revents = snd_pcm_generic_poll_revents,
 };
 
-static int snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
-				  snd_pcm_t *slave, int close_slave)
+#ifndef DOC_HIDDEN
+int __snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
+			     snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	mmap_emul_t *map;
@@ -407,6 +407,7 @@ static int snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 
 	return 0;
 }
+#endif
 
 /*! \page pcm_plugins
 
@@ -474,7 +475,7 @@ int _snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_mmap_emul_open(pcmp, name, spcm, 1);
+	err = __snd_pcm_mmap_emul_open(pcmp, name, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

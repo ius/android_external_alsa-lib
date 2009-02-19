@@ -35,7 +35,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 @BUILD_MODULES_TRUE@am__append_1 = modules
 @BUILD_PCM_PLUGIN_SHM_TRUE@am__append_2 = aserver
 @BUILD_ALISP_TRUE@@BUILD_MIXER_TRUE@am__append_3 = alsalisp
@@ -276,14 +275,13 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
+ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = doc include src $(am__append_1) $(am__append_2) \
 	$(am__append_3) test utils
-EXTRA_DIST = ChangeLog INSTALL TODO NOTES configure hgcompile libtool depcomp version MEMORY-LEAK
+EXTRA_DIST = ChangeLog INSTALL TODO NOTES configure gitcompile libtool \
+	   depcomp version MEMORY-LEAK m4/attributes.m4
+
 AUTOMAKE_OPTIONS = foreign
 INCLUDES = -I$(top_srcdir)/include
 all: all-recursive
@@ -468,7 +466,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/src $(distdir)/utils
+	$(mkdir_p) $(distdir)/doc $(distdir)/m4 $(distdir)/src $(distdir)/utils
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

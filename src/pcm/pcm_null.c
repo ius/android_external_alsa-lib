@@ -139,6 +139,7 @@ static int snd_pcm_null_start(snd_pcm_t *pcm)
 static int snd_pcm_null_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private_data;
+	assert(null->state != SND_PCM_STATE_OPEN);
 	null->state = SND_PCM_STATE_SETUP;
 	return 0;
 }
@@ -146,6 +147,7 @@ static int snd_pcm_null_drop(snd_pcm_t *pcm)
 static int snd_pcm_null_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private_data;
+	assert(null->state != SND_PCM_STATE_OPEN);
 	null->state = SND_PCM_STATE_SETUP;
 	return 0;
 }
@@ -275,7 +277,7 @@ static void snd_pcm_null_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-static snd_pcm_ops_t snd_pcm_null_ops = {
+static const snd_pcm_ops_t snd_pcm_null_ops = {
 	.close = snd_pcm_null_close,
 	.info = snd_pcm_null_info,
 	.hw_refine = snd_pcm_null_hw_refine,
@@ -290,7 +292,7 @@ static snd_pcm_ops_t snd_pcm_null_ops = {
 	.munmap = snd_pcm_generic_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	.status = snd_pcm_null_status,
 	.state = snd_pcm_null_state,
 	.hwsync = snd_pcm_null_hwsync,

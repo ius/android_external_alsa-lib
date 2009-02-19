@@ -192,18 +192,22 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_plugin_rewindable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_hw_avail(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t n = snd_pcm_mmap_hw_avail(pcm);
 	snd_pcm_sframes_t sframes;
 
-	if ((snd_pcm_uframes_t)n > frames)
+	if ((snd_pcm_uframes_t)n < frames)
 		frames = n;
 	if (frames == 0)
 		return 0;
 	
-	/* FIXME: rate plugin */
 	if (plugin->slave_frames)
 		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
 	else
@@ -218,28 +222,32 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 		frames = plugin->client_frames(pcm, sframes);
 	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) frames);
 	snd_atomic_write_end(&plugin->watom);
-	return n;
+	return (snd_pcm_sframes_t) frames;
+}
+
+static snd_pcm_sframes_t snd_pcm_plugin_forwardable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t n = snd_pcm_mmap_avail(pcm);
-	snd_pcm_uframes_t sframes;
+	snd_pcm_sframes_t sframes;
 
-	if ((snd_pcm_uframes_t)n > frames)
+	if ((snd_pcm_uframes_t)n < frames)
 		frames = n;
 	if (frames == 0)
 		return 0;
 	
-	/* FIXME: rate plugin */
 	if (plugin->slave_frames)
 		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
 	else
 		sframes = frames;
 	snd_atomic_write_begin(&plugin->watom);
-	sframes = INTERNAL(snd_pcm_forward)(plugin->gen.slave, (snd_pcm_uframes_t) sframes);
-	if ((snd_pcm_sframes_t) sframes < 0) {
+	sframes = INTERNAL(snd_pcm_forward)(plugin->gen.slave, sframes);
+	if (sframes < 0) {
 		snd_atomic_write_end(&plugin->watom);
 		return sframes;
 	}
@@ -247,7 +255,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 		frames = plugin->client_frames(pcm, sframes);
 	snd_pcm_mmap_appl_forward(pcm, (snd_pcm_uframes_t) frames);
 	snd_atomic_write_end(&plugin->watom);
-	return n;
+	return (snd_pcm_sframes_t) frames;
 }
 
 static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
@@ -552,7 +560,7 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
-snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
+const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	.status = snd_pcm_plugin_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,
@@ -563,7 +571,9 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	.drop = snd_pcm_generic_drop,
 	.drain = snd_pcm_generic_drain,
 	.pause = snd_pcm_generic_pause,
+	.rewindable = snd_pcm_plugin_rewindable,
 	.rewind = snd_pcm_plugin_rewind,
+	.forwardable = snd_pcm_plugin_forwardable,
 	.forward = snd_pcm_plugin_forward,
 	.resume = snd_pcm_generic_resume,
 	.link = snd_pcm_generic_link,

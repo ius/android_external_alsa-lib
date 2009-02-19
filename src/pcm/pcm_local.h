@@ -95,6 +95,8 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAMS_NORESAMPLE SNDRV_PCM_HW_PARAMS_NORESAMPLE
 #define SND_PCM_HW_PARAMS_EXPORT_BUFFER SNDRV_PCM_HW_PARAMS_EXPORT_BUFFER
 
+#define SND_PCM_INFO_MONOTONIC	0x80000000
+
 typedef struct _snd_pcm_rbptr {
 	snd_pcm_t *master;
 	volatile snd_pcm_uframes_t *ptr;
@@ -155,7 +157,9 @@ typedef struct {
 	int (*link)(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 	int (*link_slaves)(snd_pcm_t *pcm, snd_pcm_t *master);
 	int (*unlink)(snd_pcm_t *pcm);
+	snd_pcm_sframes_t (*rewindable)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+	snd_pcm_sframes_t (*forwardable)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*writen)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
@@ -191,8 +195,9 @@ struct _snd_pcm {
 	snd_pcm_tstamp_t tstamp_mode;	/* timestamp mode */
 	unsigned int period_step;
 	snd_pcm_uframes_t avail_min;	/* min avail frames for wakeup */
-	snd_pcm_uframes_t start_threshold;	
-	snd_pcm_uframes_t stop_threshold;	
+	int period_event;
+	snd_pcm_uframes_t start_threshold;
+	snd_pcm_uframes_t stop_threshold;
 	snd_pcm_uframes_t silence_threshold;	/* Silence filling happens when
 					   noise is nearest than this */
 	snd_pcm_uframes_t silence_size;	/* Silence filling size */
@@ -218,8 +223,8 @@ struct _snd_pcm {
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;
-	snd_pcm_ops_t *ops;
-	snd_pcm_fast_ops_t *fast_ops;
+	const snd_pcm_ops_t *ops;
+	const snd_pcm_fast_ops_t *fast_ops;
 	snd_pcm_t *op_arg;
 	snd_pcm_t *fast_op_arg;
 	void *private_data;
@@ -857,6 +862,8 @@ snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 int snd_pcm_conf_generic_id(const char *id);
 
 int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd, int mmap_emulation, int sync_ptr_ioctl);
+int __snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
+			     snd_pcm_t *slave, int close_slave);
 
 int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout);
 
@@ -944,13 +951,17 @@ typedef union snd_tmp_double {
 /* get the current timestamp */
 static inline void gettimestamp(snd_htimestamp_t *tstamp, int monotonic)
 {
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 	if (monotonic) {
 		clock_gettime(CLOCK_MONOTONIC, tstamp);
 	} else {
+#endif
 		struct timeval tv;
 
 		gettimeofday(&tv, 0);
 		tstamp->tv_sec = tv.tv_sec;
 		tstamp->tv_nsec = tv.tv_usec * 1000L;
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 	}
+#endif
 }

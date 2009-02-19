@@ -35,11 +35,11 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 check_PROGRAMS = control$(EXEEXT) pcm$(EXEEXT) pcm_min$(EXEEXT) \
 	latency$(EXEEXT) seq$(EXEEXT) playmidi1$(EXEEXT) \
 	timer$(EXEEXT) rawmidi$(EXEEXT) midiloop$(EXEEXT) \
-	oldapi$(EXEEXT) queue_timer$(EXEEXT) namehint$(EXEEXT)
+	oldapi$(EXEEXT) queue_timer$(EXEEXT) namehint$(EXEEXT) \
+	client_event_filter$(EXEEXT)
 subdir = test
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -50,6 +50,9 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/include/config.h
 CONFIG_CLEAN_FILES =
+client_event_filter_SOURCES = client_event_filter.c
+client_event_filter_OBJECTS = client_event_filter.$(OBJEXT)
+client_event_filter_DEPENDENCIES = ../src/libasound.la
 control_SOURCES = control.c
 control_OBJECTS = control.$(OBJEXT)
 control_DEPENDENCIES = ../src/libasound.la
@@ -97,11 +100,12 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = control.c latency.c midiloop.c namehint.c oldapi.c pcm.c \
-	pcm_min.c playmidi1.c queue_timer.c rawmidi.c seq.c timer.c
-DIST_SOURCES = control.c latency.c midiloop.c namehint.c oldapi.c \
-	pcm.c pcm_min.c playmidi1.c queue_timer.c rawmidi.c seq.c \
-	timer.c
+SOURCES = client_event_filter.c control.c latency.c midiloop.c \
+	namehint.c oldapi.c pcm.c pcm_min.c playmidi1.c queue_timer.c \
+	rawmidi.c seq.c timer.c
+DIST_SOURCES = client_event_filter.c control.c latency.c midiloop.c \
+	namehint.c oldapi.c pcm.c pcm_min.c playmidi1.c queue_timer.c \
+	rawmidi.c seq.c timer.c
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -305,11 +309,7 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
 control_LDADD = ../src/libasound.la
 pcm_LDADD = ../src/libasound.la
 pcm_min_LDADD = ../src/libasound.la
@@ -322,6 +322,7 @@ midiloop_LDADD = ../src/libasound.la
 oldapi_LDADD = ../src/libasound.la
 queue_timer_LDADD = ../src/libasound.la
 namehint_LDADD = ../src/libasound.la
+client_event_filter_LDADD = ../src/libasound.la
 code_CFLAGS = -Wall -pipe -g -O2
 INCLUDES = -I$(top_srcdir)/include
 AM_CFLAGS = -Wall -pipe -g
@@ -366,6 +367,9 @@ clean-checkPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
+client_event_filter$(EXEEXT): $(client_event_filter_OBJECTS) $(client_event_filter_DEPENDENCIES) 
+	@rm -f client_event_filter$(EXEEXT)
+	$(LINK) $(client_event_filter_LDFLAGS) $(client_event_filter_OBJECTS) $(client_event_filter_LDADD) $(LIBS)
 control$(EXEEXT): $(control_OBJECTS) $(control_DEPENDENCIES) 
 	@rm -f control$(EXEEXT)
 	$(LINK) $(control_LDFLAGS) $(control_OBJECTS) $(control_LDADD) $(LIBS)
@@ -409,6 +413,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/client_event_filter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/control.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/latency.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/midiloop.Po@am__quote@

@@ -45,14 +45,14 @@ typedef struct snd_pcm_extplug_priv {
 	struct snd_ext_parm sparams[SND_PCM_EXTPLUG_HW_PARAMS];
 } extplug_priv_t;
 
-static int hw_params_type[SND_PCM_EXTPLUG_HW_PARAMS] = {
+static const int hw_params_type[SND_PCM_EXTPLUG_HW_PARAMS] = {
 	[SND_PCM_EXTPLUG_HW_FORMAT] = SND_PCM_HW_PARAM_FORMAT,
 	[SND_PCM_EXTPLUG_HW_CHANNELS] = SND_PCM_HW_PARAM_CHANNELS
 };
 
 #define is_mask_type(i) (hw_params_type[i] < SND_PCM_HW_PARAM_FIRST_INTERVAL)
 
-static unsigned int excl_parbits[SND_PCM_EXTPLUG_HW_PARAMS] = {
+static const unsigned int excl_parbits[SND_PCM_EXTPLUG_HW_PARAMS] = {
 	[SND_PCM_EXTPLUG_HW_FORMAT] = (SND_PCM_HW_PARBIT_FORMAT|
 				       SND_PCM_HW_PARBIT_SUBFORMAT |
 				       SND_PCM_HW_PARBIT_SAMPLE_BITS),
@@ -425,7 +425,7 @@ static int snd_pcm_extplug_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_ops_t snd_pcm_extplug_ops = {
+static const snd_pcm_ops_t snd_pcm_extplug_ops = {
 	.close = snd_pcm_extplug_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_extplug_hw_refine,

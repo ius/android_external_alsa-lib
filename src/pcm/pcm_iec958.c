@@ -416,7 +416,7 @@ static void snd_pcm_iec958_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(iec->plug.gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_iec958_ops = {
+static const snd_pcm_ops_t snd_pcm_iec958_ops = {
 	.close = snd_pcm_generic_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_iec958_hw_refine,
@@ -453,7 +453,7 @@ int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	snd_pcm_t *pcm;
 	snd_pcm_iec958_t *iec;
 	int err;
-	static unsigned char default_status_bits[] = {
+	static const unsigned char default_status_bits[] = {
 		IEC958_AES0_CON_EMPHASIS_NONE,
 		IEC958_AES1_CON_ORIGINAL | IEC958_AES1_CON_PCM_CODER,
 		0,

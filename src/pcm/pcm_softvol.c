@@ -61,7 +61,7 @@ typedef struct {
 #define ZERO_DB                  0.0
 #define MAX_DB_UPPER_LIMIT      50
 
-static unsigned int preset_dB_value[PRESET_RESOLUTION] = {
+static const unsigned int preset_dB_value[PRESET_RESOLUTION] = {
 	0x00b8, 0x00bd, 0x00c1, 0x00c5, 0x00ca, 0x00cf, 0x00d4, 0x00d9,
 	0x00de, 0x00e3, 0x00e8, 0x00ed, 0x00f3, 0x00f9, 0x00fe, 0x0104,
 	0x010a, 0x0111, 0x0117, 0x011e, 0x0124, 0x012b, 0x0132, 0x0139,
@@ -275,9 +275,15 @@ static void softvol_convert_stereo_vol(snd_pcm_softvol_t *svol,
 		return;
 	}
 
-	vol[0] = svol->dB_value[svol->cur_vol[0]];
-	vol[1] = svol->dB_value[svol->cur_vol[1]];
-	vol_c = svol->dB_value[(svol->cur_vol[0] + svol->cur_vol[1]) / 2];
+	if (svol->max_val == 1) {
+		vol[0] = svol->cur_vol[0] ? 0xffff : 0;
+		vol[1] = svol->cur_vol[1] ? 0xffff : 0;
+		vol_c = vol[0] | vol[1];
+	} else {
+		vol[0] = svol->dB_value[svol->cur_vol[0]];
+		vol[1] = svol->dB_value[svol->cur_vol[1]];
+		vol_c = svol->dB_value[(svol->cur_vol[0] + svol->cur_vol[1]) / 2];
+	}
 	switch (svol->sformat) {
 	case SND_PCM_FORMAT_S16_LE:
 	case SND_PCM_FORMAT_S16_BE:
@@ -325,7 +331,10 @@ static void softvol_convert_mono_vol(snd_pcm_softvol_t *svol,
 		return;
 	}
 
-	vol_scale = svol->dB_value[svol->cur_vol[0]];
+	if (svol->max_val == 1)
+		vol_scale = svol->cur_vol[0] ? 0xffff : 0;
+	else
+		vol_scale = svol->dB_value[svol->cur_vol[0]];
 	switch (svol->sformat) {
 	case SND_PCM_FORMAT_S16_LE:
 	case SND_PCM_FORMAT_S16_BE:
@@ -436,6 +445,38 @@ static int snd_pcm_softvol_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_
 	return 0;
 }
 
+/*
+ * refine the access mask
+ */
+static int check_access_mask(snd_pcm_hw_params_t *src,
+			     snd_pcm_hw_params_t *dst)
+{
+	const snd_pcm_access_mask_t *mask;
+	snd_pcm_access_mask_t smask;
+
+	mask = snd_pcm_hw_param_get_mask(src, SND_PCM_HW_PARAM_ACCESS);
+	snd_mask_none(&smask);
+	if (snd_pcm_access_mask_test(mask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
+	    snd_pcm_access_mask_test(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED)) {
+		snd_pcm_access_mask_set(&smask,
+					SND_PCM_ACCESS_RW_INTERLEAVED);
+		snd_pcm_access_mask_set(&smask,
+					SND_PCM_ACCESS_MMAP_INTERLEAVED);
+	}
+	if (snd_pcm_access_mask_test(mask, SND_PCM_ACCESS_RW_NONINTERLEAVED) ||
+	    snd_pcm_access_mask_test(mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))  {
+		snd_pcm_access_mask_set(&smask,
+					SND_PCM_ACCESS_RW_NONINTERLEAVED);
+		snd_pcm_access_mask_set(&smask,
+					SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+	}
+	if (snd_pcm_access_mask_test(mask, SND_PCM_ACCESS_MMAP_COMPLEX))
+		snd_pcm_access_mask_set(&smask,
+					SND_PCM_ACCESS_MMAP_COMPLEX);
+
+	return _snd_pcm_hw_param_set_mask(dst, SND_PCM_HW_PARAM_ACCESS, &smask);
+}
+
 static int snd_pcm_softvol_hw_refine_schange(snd_pcm_t *pcm,
 					     snd_pcm_hw_params_t *params,
 					     snd_pcm_hw_params_t *sparams)
@@ -457,6 +498,11 @@ static int snd_pcm_softvol_hw_refine_schange(snd_pcm_t *pcm,
 	err = _snd_pcm_hw_params_refine(sparams, links, params);
 	if (err < 0)
 		return err;
+
+	err = check_access_mask(params, sparams);
+	if (err < 0)
+		return err;
+
 	return 0;
 }
 	
@@ -481,6 +527,11 @@ static int snd_pcm_softvol_hw_refine_cchange(snd_pcm_t *pcm,
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
 	if (err < 0)
 		return err;
+
+	err = check_access_mask(sparams, params);
+	if (err < 0)
+		return err;
+
 	return 0;
 }
 
@@ -569,9 +620,13 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_softvol_t *svol = pcm->private_data;
 	snd_output_printf(out, "Soft volume PCM\n");
 	snd_output_printf(out, "Control: %s\n", svol->elem.id.name);
-	snd_output_printf(out, "min_dB: %g\n", svol->min_dB);
-	snd_output_printf(out, "max_dB: %g\n", svol->max_dB);
-	snd_output_printf(out, "resolution: %d\n", svol->max_val + 1);
+	if (svol->max_val == 1)
+		snd_output_printf(out, "boolean\n");
+	else {
+		snd_output_printf(out, "min_dB: %g\n", svol->min_dB);
+		snd_output_printf(out, "max_dB: %g\n", svol->max_dB);
+		snd_output_printf(out, "resolution: %d\n", svol->max_val + 1);
+	}
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
@@ -596,13 +651,21 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo, int
 	int i;
 	unsigned int def_val;
 	
-	err = snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, count, 0, svol->max_val, 0);
+	if (svol->max_val == 1)
+		err = snd_ctl_elem_add_boolean(svol->ctl, &cinfo->id, count);
+	else
+		err = snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, count,
+					       0, svol->max_val, 0);
 	if (err < 0)
 		return err;
-	add_tlv_info(svol, cinfo);
-	/* set zero dB value as default, or max_val if
-	   there is no 0 dB setting */
-	def_val = svol->zero_dB_val ? svol->zero_dB_val : svol->max_val;
+	if (svol->max_val == 1)
+		def_val = 1;
+	else {
+		add_tlv_info(svol, cinfo);
+		/* set zero dB value as default, or max_val if
+		   there is no 0 dB setting */
+		def_val = svol->zero_dB_val ? svol->zero_dB_val : svol->max_val;
+	}
 	for (i = 0; i < count; i++)
 		svol->elem.value.integer.value[i] = def_val;
 	return snd_ctl_elem_write(svol->ctl, &svol->elem);
@@ -647,7 +710,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 	svol->max_val = resolution - 1;
 	svol->min_dB = min_dB;
 	svol->max_dB = max_dB;
-	if (svol->max_dB == ZERO_DB)
+	if (svol->max_val == 1 || svol->max_dB == ZERO_DB)
 		svol->zero_dB_val = svol->max_val;
 	else if (svol->max_dB < 0)
 		svol->zero_dB_val = 0; /* there is no 0 dB setting */
@@ -671,7 +734,8 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			/* hardware control exists */
 			return 1; /* notify */
 
-		} else if (cinfo->type != SND_CTL_ELEM_TYPE_INTEGER ||
+		} else if ((cinfo->type != SND_CTL_ELEM_TYPE_INTEGER &&
+			    cinfo->type != SND_CTL_ELEM_TYPE_BOOLEAN) ||
 			   cinfo->count != (unsigned int)cchannels ||
 			   cinfo->value.integer.min != 0 ||
 			   cinfo->value.integer.max != resolution - 1) {
@@ -684,7 +748,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 				SNDERR("Cannot add a control");
 				return err;
 			}
-		} else {
+		} else if (svol->max_val > 1) {
 			/* check TLV availability */
 			unsigned int tlv[4];
 			err = snd_ctl_elem_tlv_read(svol->ctl, &cinfo->id, tlv, sizeof(tlv));
@@ -693,8 +757,12 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 		}
 	}
 
+	if (svol->max_val == 1)
+		return 0;
+
+	/* set up dB table */
 	if (min_dB == PRESET_MIN_DB && max_dB == ZERO_DB && resolution == PRESET_RESOLUTION)
-		svol->dB_value = preset_dB_value;
+		svol->dB_value = (unsigned int*)preset_dB_value;
 	else {
 #ifndef HAVE_SOFT_FLOAT
 		svol->dB_value = calloc(resolution, sizeof(unsigned int));
@@ -719,7 +787,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 	return 0;
 }
 
-static snd_pcm_ops_t snd_pcm_softvol_ops = {
+static const snd_pcm_ops_t snd_pcm_softvol_ops = {
 	.close = snd_pcm_softvol_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_softvol_hw_refine,
@@ -863,6 +931,7 @@ pcm.name {
 	[min_dB REAL]           # minimal dB value (default: -51.0)
 	[max_dB REAL]           # maximal dB value (default:   0.0)
 	[resolution INT]        # resolution (default: 256)
+				# resolution = 2 means a mute switch
 }
 \endcode
 
@@ -965,7 +1034,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		       MAX_DB_UPPER_LIMIT);
 		return -EINVAL;
 	}
-	if (resolution < 0 || resolution > 1024) {
+	if (resolution <= 1 || resolution > 1024) {
 		SNDERR("Invalid resolution value %d", resolution);
 		return -EINVAL;
 	}

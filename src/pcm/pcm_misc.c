@@ -26,15 +26,6 @@
 #include <byteswap.h>
 #include "pcm_local.h"
 
-/* Bionic does not provide bswap_64() */
-#ifndef bswap_64
-#undef __ASM_ARM_BYTEORDER_H
-#include <asm/byteorder.h>
-#include <linux/byteorder/swab.h>
-
-#define bswap_64 __swab64
-#endif
-
 
 /**
  * \brief Return sign info for a PCM sample linear format
@@ -632,7 +623,7 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 	return 0;
 }
 
-static int linear_formats[4][2][2] = {
+static const int linear_formats[4][2][2] = {
 	{ { SNDRV_PCM_FORMAT_S8, SNDRV_PCM_FORMAT_S8 },
 	  { SNDRV_PCM_FORMAT_U8, SNDRV_PCM_FORMAT_U8 } },
 	{ { SNDRV_PCM_FORMAT_S16_LE, SNDRV_PCM_FORMAT_S16_BE },
@@ -643,7 +634,7 @@ static int linear_formats[4][2][2] = {
 	  { SNDRV_PCM_FORMAT_U32_LE, SNDRV_PCM_FORMAT_U32_BE } }
 };
 
-static int linear24_formats[3][2][2] = {
+static const int linear24_formats[3][2][2] = {
 	{ { SNDRV_PCM_FORMAT_S24_3LE, SNDRV_PCM_FORMAT_S24_3BE },
 	  { SNDRV_PCM_FORMAT_U24_3LE, SNDRV_PCM_FORMAT_U24_3BE } },
 	{ { SNDRV_PCM_FORMAT_S20_3LE, SNDRV_PCM_FORMAT_S20_3BE },

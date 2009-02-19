@@ -19,8 +19,9 @@ static unsigned int channels = 1;			/* count of channels */
 static unsigned int buffer_time = 500000;		/* ring buffer length in us */
 static unsigned int period_time = 100000;		/* period time in us */
 static double freq = 440;				/* sinusoidal wave frequency in Hz */
-static int verbose = 0;				/* verbose flag */
+static int verbose = 0;					/* verbose flag */
 static int resample = 1;				/* enable alsa-lib resampling */
+static int period_event = 0;				/* produce poll event after each period */
 
 static snd_pcm_sframes_t buffer_size;
 static snd_pcm_sframes_t period_size;
@@ -37,7 +38,10 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	unsigned char *samples[channels], *tmp;
 	int steps[channels];
 	unsigned int chn, byte;
-	int ires;
+	union {
+		int i;
+		unsigned char c[4];
+	} ires;
 	unsigned int maxval = (1 << (snd_pcm_format_width(format) - 1)) - 1;
 	int bps = snd_pcm_format_width(format) / 8;  /* bytes per sample */
 	
@@ -58,8 +62,8 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	/* fill the channel areas */
 	while (count-- > 0) {
 		res = sin(phase) * maxval;
-		ires = res;
-		tmp = (unsigned char *)(&ires);
+		ires.i = res;
+		tmp = ires.c;
 		for (chn = 0; chn < channels; chn++) {
 			for (byte = 0; byte < (unsigned int)bps; byte++)
 				*(samples[chn] + byte) = tmp[byte];
@@ -172,10 +176,19 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
 		return err;
 	}
 	/* allow the transfer when at least period_size samples can be processed */
-	err = snd_pcm_sw_params_set_avail_min(handle, swparams, period_size);
+	/* or disable this mechanism when period event is enabled (aka interrupt like style processing) */
+	err = snd_pcm_sw_params_set_avail_min(handle, swparams, period_event ? buffer_size : period_size);
 	if (err < 0) {
 		printf("Unable to set avail min for playback: %s\n", snd_strerror(err));
 		return err;
+	}
+	/* enable period events when requested */
+	if (period_event) {
+		err = snd_pcm_sw_params_set_period_event(handle, swparams, 1);
+		if (err < 0) {
+			printf("Unable to set period event: %s\n", snd_strerror(err));
+			return err;
+		}
 	}
 	/* write the parameters to the playback device */
 	err = snd_pcm_sw_params(handle, swparams);
@@ -192,6 +205,8 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
  
 static int xrun_recovery(snd_pcm_t *handle, int err)
 {
+	if (verbose)
+		printf("stream recovery\n");
 	if (err == -EPIPE) {	/* under-run */
 		err = snd_pcm_prepare(handle);
 		if (err < 0)
@@ -370,11 +385,11 @@ static void async_callback(snd_async_handler_t *ahandler)
 		generate_sine(areas, 0, period_size, &data->phase);
 		err = snd_pcm_writei(handle, samples, period_size);
 		if (err < 0) {
-			printf("Initial write error: %s\n", snd_strerror(err));
+			printf("Write error: %s\n", snd_strerror(err));
 			exit(EXIT_FAILURE);
 		}
 		if (err != period_size) {
-			printf("Initial write error: written %i expected %li\n", err, period_size);
+			printf("Write error: written %i expected %li\n", err, period_size);
 			exit(EXIT_FAILURE);
 		}
 		avail = snd_pcm_avail_update(handle);
@@ -409,10 +424,12 @@ static int async_loop(snd_pcm_t *handle,
 			exit(EXIT_FAILURE);
 		}
 	}
-	err = snd_pcm_start(handle);
-	if (err < 0) {
-		printf("Start error: %s\n", snd_strerror(err));
-		exit(EXIT_FAILURE);
+	if (snd_pcm_state(handle) == SND_PCM_STATE_PREPARED) {
+		err = snd_pcm_start(handle);
+		if (err < 0) {
+			printf("Start error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	/* because all other work is done in the signal handler,
@@ -711,6 +728,8 @@ static void help(void)
 "-m,--method	transfer method\n"
 "-o,--format	sample format\n"
 "-v,--verbose   show the PCM setup parameters\n"
+"-n,--noresample  do not resample\n"
+"-e,--pevent    enable poll event after each period\n"
 "\n");
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
@@ -740,6 +759,7 @@ int main(int argc, char *argv[])
 		{"format", 1, NULL, 'o'},
 		{"verbose", 1, NULL, 'v'},
 		{"noresample", 1, NULL, 'n'},
+		{"pevent", 1, NULL, 'e'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *handle;
@@ -757,7 +777,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:o:vn", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:o:vne", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -814,6 +834,9 @@ int main(int argc, char *argv[])
 		case 'n':
 			resample = 0;
 			break;
+		case 'e':
+			period_event = 1;
+			break;
 		}
 	}
 
@@ -850,7 +873,7 @@ int main(int argc, char *argv[])
 	if (verbose > 0)
 		snd_pcm_dump(handle, output);
 
-	samples = malloc((period_size * channels * snd_pcm_format_width(format)) / 8);
+	samples = malloc((period_size * channels * snd_pcm_format_physical_width(format)) / 8);
 	if (samples == NULL) {
 		printf("No enough memory\n");
 		exit(EXIT_FAILURE);
@@ -863,8 +886,8 @@ int main(int argc, char *argv[])
 	}
 	for (chn = 0; chn < channels; chn++) {
 		areas[chn].addr = samples;
-		areas[chn].first = chn * snd_pcm_format_width(format);
-		areas[chn].step = channels * snd_pcm_format_width(format);
+		areas[chn].first = chn * snd_pcm_format_physical_width(format);
+		areas[chn].step = channels * snd_pcm_format_physical_width(format);
 	}
 
 	err = transfer_methods[method].transfer_loop(handle, samples, areas);

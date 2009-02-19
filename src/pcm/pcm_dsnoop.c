@@ -313,10 +313,27 @@ static int snd_pcm_dsnoop_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTR
 	return -EIO;
 }
 
+static snd_pcm_sframes_t snd_pcm_dsnoop_rewindable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_capture_avail(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_dsnoop_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
+	snd_pcm_sframes_t avail;
+
+	avail = snd_pcm_mmap_capture_avail(pcm);
+	if (avail < 0)
+		return 0;
+	if (frames > (snd_pcm_uframes_t)avail)
+		frames = avail;
 	snd_pcm_mmap_appl_backward(pcm, frames);
 	return frames;
+}
+
+static snd_pcm_sframes_t snd_pcm_dsnoop_forwardable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_capture_hw_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_dsnoop_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -438,7 +455,7 @@ static void snd_pcm_dsnoop_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump(dsnoop->spcm, out);
 }
 
-static snd_pcm_ops_t snd_pcm_dsnoop_ops = {
+static const snd_pcm_ops_t snd_pcm_dsnoop_ops = {
 	.close = snd_pcm_dsnoop_close,
 	.info = snd_pcm_direct_info,
 	.hw_refine = snd_pcm_direct_hw_refine,
@@ -453,7 +470,7 @@ static snd_pcm_ops_t snd_pcm_dsnoop_ops = {
 	.munmap = snd_pcm_direct_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.status = snd_pcm_dsnoop_status,
 	.state = snd_pcm_dsnoop_state,
 	.hwsync = snd_pcm_dsnoop_hwsync,
@@ -464,7 +481,9 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.drop = snd_pcm_dsnoop_drop,
 	.drain = snd_pcm_dsnoop_drain,
 	.pause = snd_pcm_dsnoop_pause,
+	.rewindable = snd_pcm_dsnoop_rewindable,
 	.rewind = snd_pcm_dsnoop_rewind,
+	.forwardable = snd_pcm_dsnoop_forwardable,
 	.forward = snd_pcm_dsnoop_forward,
 	.resume = snd_pcm_direct_resume,
 	.link = NULL,

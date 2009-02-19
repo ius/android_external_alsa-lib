@@ -146,7 +146,7 @@ static int snd_pcm_ioplug_prepare(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int hw_params_type[SND_PCM_IOPLUG_HW_PARAMS] = {
+static const int hw_params_type[SND_PCM_IOPLUG_HW_PARAMS] = {
 	[SND_PCM_IOPLUG_HW_ACCESS] = SND_PCM_HW_PARAM_ACCESS,
 	[SND_PCM_IOPLUG_HW_FORMAT] = SND_PCM_HW_PARAM_FORMAT,
 	[SND_PCM_IOPLUG_HW_CHANNELS] = SND_PCM_HW_PARAM_CHANNELS,
@@ -483,8 +483,8 @@ static int snd_pcm_ioplug_drain(snd_pcm_t *pcm)
 static int snd_pcm_ioplug_pause(snd_pcm_t *pcm, int enable)
 {
 	ioplug_priv_t *io = pcm->private_data;
-	static snd_pcm_state_t states[2] = {
-		SND_PCM_STATE_PAUSED, SND_PCM_STATE_RUNNING
+	static const snd_pcm_state_t states[2] = {
+		SND_PCM_STATE_RUNNING, SND_PCM_STATE_PAUSED
 	};
 	int prev, err;
 
@@ -501,10 +501,20 @@ static int snd_pcm_ioplug_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_ioplug_rewindable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_hw_avail(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_ioplug_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_mmap_appl_backward(pcm, frames);
 	return frames;
+}
+
+static snd_pcm_sframes_t snd_pcm_ioplug_forwardable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_ioplug_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -737,7 +747,7 @@ static int snd_pcm_ioplug_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_ops_t snd_pcm_ioplug_ops = {
+static const snd_pcm_ops_t snd_pcm_ioplug_ops = {
 	.close = snd_pcm_ioplug_close,
 	.nonblock = snd_pcm_ioplug_nonblock,
 	.async = snd_pcm_ioplug_async,
@@ -752,7 +762,7 @@ static snd_pcm_ops_t snd_pcm_ioplug_ops = {
 	.munmap = snd_pcm_ioplug_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.status = snd_pcm_ioplug_status,
 	.prepare = snd_pcm_ioplug_prepare,
 	.reset = snd_pcm_ioplug_reset,
@@ -767,7 +777,9 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.link = NULL,
 	.link_slaves = NULL,
 	.unlink = NULL,
+	.rewindable = snd_pcm_ioplug_rewindable,
 	.rewind = snd_pcm_ioplug_rewind,
+	.forwardable = snd_pcm_ioplug_forwardable,
 	.forward = snd_pcm_ioplug_forward,
 	.writei = snd_pcm_ioplug_writei,
 	.writen = snd_pcm_ioplug_writen,

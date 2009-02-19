@@ -36,7 +36,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-target_triplet = @target@
 @BUILD_MIXER_TRUE@am__append_1 = mixer
 @BUILD_MIXER_TRUE@am__append_2 = mixer/libmixer.la
 @BUILD_PCM_TRUE@am__append_3 = pcm timer
@@ -308,11 +307,7 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
-target = @target@
 target_alias = @target_alias@
-target_cpu = @target_cpu@
-target_os = @target_os@
-target_vendor = @target_vendor@
 EXTRA_DIST = Versions
 COMPATNUM = @LIBTOOL_VERSION_INFO@
 @VERSIONED_SYMBOLS_FALSE@VSYMS = 
@@ -327,7 +322,7 @@ libasound_la_LIBADD = control/libcontrol.la $(am__append_2) \
 	$(am__append_4) $(am__append_6) $(am__append_8) \
 	$(am__append_10) $(am__append_12) compat/libcompat.la \
 	@ALSA_DEPLIBS@ $(am__empty)
-libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS)
+libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS) $(LDFLAGS_NOUNDEFINED)
 INCLUDES = -I$(top_srcdir)/include
 all: all-recursive
 
