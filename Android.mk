@@ -3,7 +3,7 @@
 # Copyright 2008 Wind River Systems
 #
 
-ifeq ($(BOARD_USES_ALSA_AUDIO),true)
+ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
