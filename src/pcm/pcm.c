@@ -630,7 +630,6 @@ playback devices.
 #include <stdarg.h>
 #include <signal.h>
 #include <sys/poll.h>
-#include <sys/shm.h>
 #include <sys/mman.h>
 #include <limits.h>
 #include "pcm_local.h"
