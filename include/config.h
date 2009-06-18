@@ -34,22 +34,22 @@
 #define BUILD_PCM "1"
 
 /* Build PCM adpcm plugin */
-/* #undef BUILD_PCM_PLUGIN_ADPCM */
+#define BUILD_PCM_PLUGIN_ADPCM "1"
 
 /* Build PCM alaw plugin */
-/* #undef BUILD_PCM_PLUGIN_ALAW */
+#define BUILD_PCM_PLUGIN_ALAW "1"
 
 /* Build PCM lfloat plugin */
-/* #undef BUILD_PCM_PLUGIN_LFLOAT */
+#define BUILD_PCM_PLUGIN_LFLOAT "1"
 
 /* Build PCM mulaw plugin */
-/* #undef BUILD_PCM_PLUGIN_MULAW */
+#define BUILD_PCM_PLUGIN_MULAW "1"
 
 /* Build PCM rate plugin */
-/* #undef BUILD_PCM_PLUGIN_RATE */
+#define BUILD_PCM_PLUGIN_RATE "1"
 
 /* Build PCM route plugin */
-/* #undef BUILD_PCM_PLUGIN_ROUTE */
+#define BUILD_PCM_PLUGIN_ROUTE "1"
 
 /* Build raw MIDI component */
 /* #undef BUILD_RAWMIDI */
@@ -110,7 +110,7 @@
 
 /* No assert debug */
 #ifndef NDEBUG
-#define NDEBUG 
+#define NDEBUG
 #endif
 
 /* Name of package */
@@ -161,5 +161,5 @@
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
 #ifndef __cplusplus
-/* #undef inline */
+#define inline __inline
 #endif
