@@ -45,6 +45,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libasound
 
+LOCAL_PRELINK_MODULE := false
 LOCAL_ARM_MODE := arm
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/include
@@ -70,7 +71,9 @@ LOCAL_SRC_FILES := $(filter-out src/pcm/pcm_shm.c, $(LOCAL_SRC_FILES))
 LOCAL_SRC_FILES := $(filter-out src/pcm/scopes/level.c, $(LOCAL_SRC_FILES))
 LOCAL_SRC_FILES := $(filter-out src/shmarea.c, $(LOCAL_SRC_FILES))
 
-include $(BUILD_STATIC_LIBRARY)
+LOCAL_SHARED_LIBRARIES := \
+    libdl
+
+include $(BUILD_SHARED_LIBRARY)
 
 endif
-
