@@ -574,7 +574,7 @@ uninstall-info: uninstall-info-recursive
 
 
 doc:
-	test -e doxygen.cfg || sed s:@top_srcdir@:..:g doxygen.cfg.in > doxygen.cfg
+	test -e doxygen.cfg || sed s:[@]top_srcdir[@]:..:g doxygen.cfg.in > doxygen.cfg
 	doxygen doxygen.cfg
 
 doc-pack: doc

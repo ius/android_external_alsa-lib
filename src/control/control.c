@@ -211,7 +211,7 @@ int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsign
 }
 
 /**
- * \brief Ask to be informed about events (poll, #snd_ctl_async, #snd_ctl_read)
+ * \brief Ask to be informed about events (poll, #snd_async_add_ctl_handler, #snd_ctl_read)
  * \param ctl CTL handle
  * \param subscribe 0 = unsubscribe, 1 = subscribe
  * \return 0 on success otherwise a negative error code
@@ -674,8 +674,8 @@ int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 {
 	struct pollfd *pfd;
-	unsigned short *revents;
-	int i, npfds, pollio, err, err_poll;
+	unsigned short revents;
+	int npfds, err, err_poll;
 
 	npfds = snd_ctl_poll_descriptors_count(ctl);
 	if (npfds <= 0 || npfds >= 16) {
@@ -683,7 +683,6 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
-	revents = alloca(sizeof(*revents) * npfds);
 	err = snd_ctl_poll_descriptors(ctl, pfd, npfds);
 	if (err < 0)
 		return err;
@@ -691,26 +690,20 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 		SNDMSG("invalid poll descriptors %d\n", err);
 		return -EIO;
 	}
-	do {
+	for (;;) {
 		err_poll = poll(pfd, npfds, timeout);
 		if (err_poll < 0)
 			return -errno;
 		if (! err_poll)
-			break;
-		err = snd_ctl_poll_descriptors_revents(ctl, pfd, npfds, revents);
+			return 0;
+		err = snd_ctl_poll_descriptors_revents(ctl, pfd, npfds, &revents);
 		if (err < 0)
 			return err;
-		pollio = 0;
-		for (i = 0; i < npfds; i++) {
-			if (revents[i] & (POLLERR | POLLNVAL))
-				return -EIO;
-			if ((revents[i] & (POLLIN | POLLOUT)) == 0)
-				continue;
-			pollio++;
-		}
-	} while (! pollio);
-
-	return err_poll > 0 ? 1 : 0;
+		if (revents & (POLLERR | POLLNVAL))
+			return -EIO;
+		if (revents & (POLLIN | POLLOUT))
+			return 1;
+	}
 }
 
 /**
@@ -2253,6 +2246,18 @@ void snd_ctl_elem_value_copy(snd_ctl_elem_value_t *dst, const snd_ctl_elem_value
 {
 	assert(dst && src);
 	*dst = *src;
+}
+
+/**
+ * \brief compare one #snd_ctl_elem_value_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ * \return 0 on match, less than or greater than otherwise, see memcmp
+ */
+int snd_ctl_elem_value_compare(snd_ctl_elem_value_t *left, const snd_ctl_elem_value_t *right)
+{
+	assert(left && right);
+	return memcmp(left, right, sizeof(*left));
 }
 
 /**

@@ -402,7 +402,7 @@ struct sndrv_pcm_sw_params {
 
 struct sndrv_pcm_channel_info {
 	unsigned int channel;
-	off_t offset;			/* mmap offset */
+	long offset;			/* mmap offset */
 	unsigned int first;		/* offset to first sample in bits */
 	unsigned int step;		/* samples distance in bits */
 };
@@ -593,6 +593,7 @@ enum sndrv_timer_slave_class {
 #define SNDRV_TIMER_GLOBAL_SYSTEM	0
 #define SNDRV_TIMER_GLOBAL_RTC		1
 #define SNDRV_TIMER_GLOBAL_HPET		2
+#define SNDRV_TIMER_GLOBAL_HRTIMER	3
 
 /* info flags */
 #define SNDRV_TIMER_FLG_SLAVE		(1<<0)	/* cannot be controlled */

@@ -13,13 +13,14 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-top_builddir = ..
+top_builddir = ../..
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 INSTALL = @INSTALL@
 install_sh_DATA = $(install_sh) -c -m 644
@@ -35,13 +36,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-check_PROGRAMS = control$(EXEEXT) pcm$(EXEEXT) pcm_min$(EXEEXT) \
-	latency$(EXEEXT) seq$(EXEEXT) playmidi1$(EXEEXT) \
-	timer$(EXEEXT) rawmidi$(EXEEXT) midiloop$(EXEEXT) \
-	oldapi$(EXEEXT) queue_timer$(EXEEXT) namehint$(EXEEXT) \
-	client_event_filter$(EXEEXT)
-subdir = test
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+check_PROGRAMS = $(am__EXEEXT_1)
+subdir = test/lsb
+DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/configure.in
@@ -50,45 +48,15 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/include/config.h
 CONFIG_CLEAN_FILES =
-client_event_filter_SOURCES = client_event_filter.c
-client_event_filter_OBJECTS = client_event_filter.$(OBJEXT)
-client_event_filter_DEPENDENCIES = ../src/libasound.la
-control_SOURCES = control.c
-control_OBJECTS = control.$(OBJEXT)
-control_DEPENDENCIES = ../src/libasound.la
-latency_SOURCES = latency.c
-latency_OBJECTS = latency.$(OBJEXT)
-latency_DEPENDENCIES = ../src/libasound.la
-midiloop_SOURCES = midiloop.c
-midiloop_OBJECTS = midiloop.$(OBJEXT)
-midiloop_DEPENDENCIES = ../src/libasound.la
-namehint_SOURCES = namehint.c
-namehint_OBJECTS = namehint.$(OBJEXT)
-namehint_DEPENDENCIES = ../src/libasound.la
-oldapi_SOURCES = oldapi.c
-oldapi_OBJECTS = oldapi.$(OBJEXT)
-oldapi_DEPENDENCIES = ../src/libasound.la
-pcm_SOURCES = pcm.c
-pcm_OBJECTS = pcm.$(OBJEXT)
-pcm_DEPENDENCIES = ../src/libasound.la
-pcm_min_SOURCES = pcm_min.c
-pcm_min_OBJECTS = pcm_min.$(OBJEXT)
-pcm_min_DEPENDENCIES = ../src/libasound.la
-playmidi1_SOURCES = playmidi1.c
-playmidi1_OBJECTS = playmidi1.$(OBJEXT)
-playmidi1_DEPENDENCIES = ../src/libasound.la
-queue_timer_SOURCES = queue_timer.c
-queue_timer_OBJECTS = queue_timer.$(OBJEXT)
-queue_timer_DEPENDENCIES = ../src/libasound.la
-rawmidi_SOURCES = rawmidi.c
-rawmidi_OBJECTS = rawmidi.$(OBJEXT)
-rawmidi_DEPENDENCIES = ../src/libasound.la
-seq_SOURCES = seq.c
-seq_OBJECTS = seq.$(OBJEXT)
-seq_DEPENDENCIES = ../src/libasound.la
-timer_SOURCES = timer.c
-timer_OBJECTS = timer.$(OBJEXT)
-timer_DEPENDENCIES = ../src/libasound.la
+am__EXEEXT_1 = config$(EXEEXT) midi_event$(EXEEXT)
+config_SOURCES = config.c
+config_OBJECTS = config.$(OBJEXT)
+config_LDADD = $(LDADD)
+config_DEPENDENCIES = ../../src/libasound.la
+midi_event_SOURCES = midi_event.c
+midi_event_OBJECTS = midi_event.$(OBJEXT)
+midi_event_LDADD = $(LDADD)
+midi_event_DEPENDENCIES = ../../src/libasound.la
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -100,21 +68,11 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = client_event_filter.c control.c latency.c midiloop.c \
-	namehint.c oldapi.c pcm.c pcm_min.c playmidi1.c queue_timer.c \
-	rawmidi.c seq.c timer.c
-DIST_SOURCES = client_event_filter.c control.c latency.c midiloop.c \
-	namehint.c oldapi.c pcm.c pcm_min.c playmidi1.c queue_timer.c \
-	rawmidi.c seq.c timer.c
-RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
-	html-recursive info-recursive install-data-recursive \
-	install-exec-recursive install-info-recursive \
-	install-recursive installcheck-recursive installdirs-recursive \
-	pdf-recursive ps-recursive uninstall-info-recursive \
-	uninstall-recursive
+SOURCES = config.c midi_event.c
+DIST_SOURCES = config.c midi_event.c
+HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALSA_CONFIG_DIR = @ALSA_CONFIG_DIR@
@@ -317,25 +275,11 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = . lsb
-control_LDADD = ../src/libasound.la
-pcm_LDADD = ../src/libasound.la
-pcm_min_LDADD = ../src/libasound.la
-latency_LDADD = ../src/libasound.la
-seq_LDADD = ../src/libasound.la
-playmidi1_LDADD = ../src/libasound.la
-timer_LDADD = ../src/libasound.la
-rawmidi_LDADD = ../src/libasound.la
-midiloop_LDADD = ../src/libasound.la
-oldapi_LDADD = ../src/libasound.la
-queue_timer_LDADD = ../src/libasound.la
-namehint_LDADD = ../src/libasound.la
-client_event_filter_LDADD = ../src/libasound.la
-code_CFLAGS = -Wall -pipe -g -O2
-INCLUDES = -I$(top_srcdir)/include
-AM_CFLAGS = -Wall -pipe -g
-EXTRA_DIST = seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3
-all: all-recursive
+TESTS = config midi_event
+noinst_HEADERS = test.h
+AM_CFLAGS = -Wall -pipe
+LDADD = ../../src/libasound.la
+all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -348,9 +292,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  test/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  test/lsb/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  test/Makefile
+	  $(AUTOMAKE) --foreign  test/lsb/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -375,45 +319,12 @@ clean-checkPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
-client_event_filter$(EXEEXT): $(client_event_filter_OBJECTS) $(client_event_filter_DEPENDENCIES) 
-	@rm -f client_event_filter$(EXEEXT)
-	$(LINK) $(client_event_filter_LDFLAGS) $(client_event_filter_OBJECTS) $(client_event_filter_LDADD) $(LIBS)
-control$(EXEEXT): $(control_OBJECTS) $(control_DEPENDENCIES) 
-	@rm -f control$(EXEEXT)
-	$(LINK) $(control_LDFLAGS) $(control_OBJECTS) $(control_LDADD) $(LIBS)
-latency$(EXEEXT): $(latency_OBJECTS) $(latency_DEPENDENCIES) 
-	@rm -f latency$(EXEEXT)
-	$(LINK) $(latency_LDFLAGS) $(latency_OBJECTS) $(latency_LDADD) $(LIBS)
-midiloop$(EXEEXT): $(midiloop_OBJECTS) $(midiloop_DEPENDENCIES) 
-	@rm -f midiloop$(EXEEXT)
-	$(LINK) $(midiloop_LDFLAGS) $(midiloop_OBJECTS) $(midiloop_LDADD) $(LIBS)
-namehint$(EXEEXT): $(namehint_OBJECTS) $(namehint_DEPENDENCIES) 
-	@rm -f namehint$(EXEEXT)
-	$(LINK) $(namehint_LDFLAGS) $(namehint_OBJECTS) $(namehint_LDADD) $(LIBS)
-oldapi$(EXEEXT): $(oldapi_OBJECTS) $(oldapi_DEPENDENCIES) 
-	@rm -f oldapi$(EXEEXT)
-	$(LINK) $(oldapi_LDFLAGS) $(oldapi_OBJECTS) $(oldapi_LDADD) $(LIBS)
-pcm$(EXEEXT): $(pcm_OBJECTS) $(pcm_DEPENDENCIES) 
-	@rm -f pcm$(EXEEXT)
-	$(LINK) $(pcm_LDFLAGS) $(pcm_OBJECTS) $(pcm_LDADD) $(LIBS)
-pcm_min$(EXEEXT): $(pcm_min_OBJECTS) $(pcm_min_DEPENDENCIES) 
-	@rm -f pcm_min$(EXEEXT)
-	$(LINK) $(pcm_min_LDFLAGS) $(pcm_min_OBJECTS) $(pcm_min_LDADD) $(LIBS)
-playmidi1$(EXEEXT): $(playmidi1_OBJECTS) $(playmidi1_DEPENDENCIES) 
-	@rm -f playmidi1$(EXEEXT)
-	$(LINK) $(playmidi1_LDFLAGS) $(playmidi1_OBJECTS) $(playmidi1_LDADD) $(LIBS)
-queue_timer$(EXEEXT): $(queue_timer_OBJECTS) $(queue_timer_DEPENDENCIES) 
-	@rm -f queue_timer$(EXEEXT)
-	$(LINK) $(queue_timer_LDFLAGS) $(queue_timer_OBJECTS) $(queue_timer_LDADD) $(LIBS)
-rawmidi$(EXEEXT): $(rawmidi_OBJECTS) $(rawmidi_DEPENDENCIES) 
-	@rm -f rawmidi$(EXEEXT)
-	$(LINK) $(rawmidi_LDFLAGS) $(rawmidi_OBJECTS) $(rawmidi_LDADD) $(LIBS)
-seq$(EXEEXT): $(seq_OBJECTS) $(seq_DEPENDENCIES) 
-	@rm -f seq$(EXEEXT)
-	$(LINK) $(seq_LDFLAGS) $(seq_OBJECTS) $(seq_LDADD) $(LIBS)
-timer$(EXEEXT): $(timer_OBJECTS) $(timer_DEPENDENCIES) 
-	@rm -f timer$(EXEEXT)
-	$(LINK) $(timer_LDFLAGS) $(timer_OBJECTS) $(timer_LDADD) $(LIBS)
+config$(EXEEXT): $(config_OBJECTS) $(config_DEPENDENCIES) 
+	@rm -f config$(EXEEXT)
+	$(LINK) $(config_LDFLAGS) $(config_OBJECTS) $(config_LDADD) $(LIBS)
+midi_event$(EXEEXT): $(midi_event_OBJECTS) $(midi_event_DEPENDENCIES) 
+	@rm -f midi_event$(EXEEXT)
+	$(LINK) $(midi_event_LDFLAGS) $(midi_event_OBJECTS) $(midi_event_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -421,19 +332,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/client_event_filter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/control.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/latency.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/midiloop.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/namehint.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oldapi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pcm.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pcm_min.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/playmidi1.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/queue_timer.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rawmidi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seq.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/midi_event.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -466,77 +366,6 @@ distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
 
-# This directory's subdirectories are mostly independent; you can cd
-# into them and run `make' without going through this Makefile.
-# To change the values of `make' variables: instead of editing Makefiles,
-# (1) if the variable is set in `config.status', edit `config.status'
-#     (which will cause the Makefiles to be regenerated when you run `make');
-# (2) otherwise, pass the desired values on the `make' command line.
-$(RECURSIVE_TARGETS):
-	@failcom='exit 1'; \
-	for f in x $$MAKEFLAGS; do \
-	  case $$f in \
-	    *=* | --[!k]*);; \
-	    *k*) failcom='fail=yes';; \
-	  esac; \
-	done; \
-	dot_seen=no; \
-	target=`echo $@ | sed s/-recursive//`; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    dot_seen=yes; \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done; \
-	if test "$$dot_seen" = "no"; then \
-	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
-	fi; test -z "$$fail"
-
-mostlyclean-recursive clean-recursive distclean-recursive \
-maintainer-clean-recursive:
-	@failcom='exit 1'; \
-	for f in x $$MAKEFLAGS; do \
-	  case $$f in \
-	    *=* | --[!k]*);; \
-	    *k*) failcom='fail=yes';; \
-	  esac; \
-	done; \
-	dot_seen=no; \
-	case "$@" in \
-	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
-	  *) list='$(SUBDIRS)' ;; \
-	esac; \
-	rev=''; for subdir in $$list; do \
-	  if test "$$subdir" = "."; then :; else \
-	    rev="$$subdir $$rev"; \
-	  fi; \
-	done; \
-	rev="$$rev ."; \
-	target=`echo $@ | sed s/-recursive//`; \
-	for subdir in $$rev; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done && test -z "$$fail"
-tags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
-	done
-ctags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) ctags); \
-	done
-
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -547,23 +376,10 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
-	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
-	  include_option=--etags-include; \
-	  empty_fix=.; \
-	else \
-	  include_option=--include; \
-	  empty_fix=; \
-	fi; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test ! -f $$subdir/TAGS || \
-	      tags="$$tags $$include_option=$$here/$$subdir/TAGS"; \
-	  fi; \
-	done; \
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
@@ -576,7 +392,7 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 	    $$tags $$unique; \
 	fi
 ctags: CTAGS
-CTAGS: ctags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
@@ -597,6 +413,79 @@ GTAGS:
 
 distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
+
+check-TESTS: $(TESTS)
+	@failed=0; all=0; xfail=0; xpass=0; skip=0; \
+	srcdir=$(srcdir); export srcdir; \
+	list='$(TESTS)'; \
+	if test -n "$$list"; then \
+	  for tst in $$list; do \
+	    if test -f ./$$tst; then dir=./; \
+	    elif test -f $$tst; then dir=; \
+	    else dir="$(srcdir)/"; fi; \
+	    if $(TESTS_ENVIRONMENT) $${dir}$$tst; then \
+	      all=`expr $$all + 1`; \
+	      case " $(XFAIL_TESTS) " in \
+	      *" $$tst "*) \
+		xpass=`expr $$xpass + 1`; \
+		failed=`expr $$failed + 1`; \
+		echo "XPASS: $$tst"; \
+	      ;; \
+	      *) \
+		echo "PASS: $$tst"; \
+	      ;; \
+	      esac; \
+	    elif test $$? -ne 77; then \
+	      all=`expr $$all + 1`; \
+	      case " $(XFAIL_TESTS) " in \
+	      *" $$tst "*) \
+		xfail=`expr $$xfail + 1`; \
+		echo "XFAIL: $$tst"; \
+	      ;; \
+	      *) \
+		failed=`expr $$failed + 1`; \
+		echo "FAIL: $$tst"; \
+	      ;; \
+	      esac; \
+	    else \
+	      skip=`expr $$skip + 1`; \
+	      echo "SKIP: $$tst"; \
+	    fi; \
+	  done; \
+	  if test "$$failed" -eq 0; then \
+	    if test "$$xfail" -eq 0; then \
+	      banner="All $$all tests passed"; \
+	    else \
+	      banner="All $$all tests behaved as expected ($$xfail expected failures)"; \
+	    fi; \
+	  else \
+	    if test "$$xpass" -eq 0; then \
+	      banner="$$failed of $$all tests failed"; \
+	    else \
+	      banner="$$failed of $$all tests did not behave as expected ($$xpass unexpected passes)"; \
+	    fi; \
+	  fi; \
+	  dashes="$$banner"; \
+	  skipped=""; \
+	  if test "$$skip" -ne 0; then \
+	    skipped="($$skip tests were not run)"; \
+	    test `echo "$$skipped" | wc -c` -le `echo "$$banner" | wc -c` || \
+	      dashes="$$skipped"; \
+	  fi; \
+	  report=""; \
+	  if test "$$failed" -ne 0 && test -n "$(PACKAGE_BUGREPORT)"; then \
+	    report="Please report to $(PACKAGE_BUGREPORT)"; \
+	    test `echo "$$report" | wc -c` -le `echo "$$banner" | wc -c` || \
+	      dashes="$$report"; \
+	  fi; \
+	  dashes=`echo "$$dashes" | sed s/./=/g`; \
+	  echo "$$dashes"; \
+	  echo "$$banner"; \
+	  test -z "$$skipped" || echo "$$skipped"; \
+	  test -z "$$report" || echo "$$report"; \
+	  echo "$$dashes"; \
+	  test "$$failed" -eq 0; \
+	else :; fi
 
 distdir: $(DISTFILES)
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
@@ -625,36 +514,21 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
-	list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test -d "$(distdir)/$$subdir" \
-	    || $(mkdir_p) "$(distdir)/$$subdir" \
-	    || exit 1; \
-	    distdir=`$(am__cd) $(distdir) && pwd`; \
-	    top_distdir=`$(am__cd) $(top_distdir) && pwd`; \
-	    (cd $$subdir && \
-	      $(MAKE) $(AM_MAKEFLAGS) \
-	        top_distdir="$$top_distdir" \
-	        distdir="$$distdir/$$subdir" \
-	        distdir) \
-	      || exit 1; \
-	  fi; \
-	done
 check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
-check: check-recursive
-all-am: Makefile
-installdirs: installdirs-recursive
-installdirs-am:
-install: install-recursive
-install-exec: install-exec-recursive
-install-data: install-data-recursive
-uninstall: uninstall-recursive
+	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
+check: check-am
+all-am: Makefile $(HEADERS)
+installdirs:
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-recursive
+installcheck: installcheck-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -670,24 +544,24 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-recursive
+clean: clean-am
 
 clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
 	mostlyclean-am
 
-distclean: distclean-recursive
+distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-tags
 
-dvi: dvi-recursive
+dvi: dvi-am
 
 dvi-am:
 
-html: html-recursive
+html: html-am
 
-info: info-recursive
+info: info-am
 
 info-am:
 
@@ -695,47 +569,43 @@ install-data-am:
 
 install-exec-am:
 
-install-info: install-info-recursive
+install-info: install-info-am
 
 install-man:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-recursive
+maintainer-clean: maintainer-clean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-recursive
+mostlyclean: mostlyclean-am
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-recursive
+pdf: pdf-am
 
 pdf-am:
 
-ps: ps-recursive
+ps: ps-am
 
 ps-am:
 
 uninstall-am: uninstall-info-am
 
-uninstall-info: uninstall-info-recursive
-
-.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-am \
-	clean clean-checkPROGRAMS clean-generic clean-libtool \
-	clean-recursive ctags ctags-recursive distclean \
-	distclean-compile distclean-generic distclean-libtool \
-	distclean-recursive distclean-tags distdir dvi dvi-am html \
+.PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
+	clean-checkPROGRAMS clean-generic clean-libtool ctags \
+	distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-exec install-exec-am install-info \
 	install-info-am install-man install-strip installcheck \
-	installcheck-am installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic maintainer-clean-recursive \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool mostlyclean-recursive pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am uninstall-info-am
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-info-am
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

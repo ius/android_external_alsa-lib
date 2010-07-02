@@ -272,10 +272,10 @@ cfg_files = aliases.conf AACI.conf ATIIXP.conf ATIIXP-SPDMA.conf \
 	GUS.conf HDA-Intel.conf ICE1712.conf ICE1724.conf ICH.conf \
 	ICH4.conf ICH-MODEM.conf Maestro3.conf NFORCE.conf \
 	PC-Speaker.conf PMac.conf PMacToonie.conf PS3.conf \
-	RME9636.conf RME9652.conf SI7018.conf TRID4DWAVENX.conf \
-	USB-Audio.conf YMF744.conf VIA686A.conf VIA8233.conf \
-	VIA8233A.conf VIA8237.conf VX222.conf VXPocket.conf \
-	VXPocket440.conf $(am__append_1)
+	RME9636.conf RME9652.conf SI7018.conf SB-XFi.conf \
+	TRID4DWAVENX.conf USB-Audio.conf YMF744.conf VIA686A.conf \
+	VIA8233.conf VIA8233A.conf VIA8237.conf VX222.conf \
+	VXPocket.conf VXPocket440.conf $(am__append_1)
 alsa_DATA = $(cfg_files)
 @BUILD_ALISP_TRUE@SI7018dir = $(alsaconfigdir)/cards/SI7018
 @BUILD_ALISP_FALSE@SI7018_files = 

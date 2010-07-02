@@ -34,17 +34,18 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	static double max_phase = 2. * M_PI;
 	double phase = *_phase;
 	double step = max_phase*freq/(double)rate;
-	double res;
-	unsigned char *samples[channels], *tmp;
+	unsigned char *samples[channels];
 	int steps[channels];
-	unsigned int chn, byte;
-	union {
-		int i;
-		unsigned char c[4];
-	} ires;
-	unsigned int maxval = (1 << (snd_pcm_format_width(format) - 1)) - 1;
-	int bps = snd_pcm_format_width(format) / 8;  /* bytes per sample */
-	
+	unsigned int chn;
+	int format_bits = snd_pcm_format_width(format);
+	unsigned int maxval = (1 << (format_bits - 1)) - 1;
+	int bps = format_bits / 8;  /* bytes per sample */
+	int phys_bps = snd_pcm_format_physical_width(format) / 8;
+	int big_endian = snd_pcm_format_big_endian(format) == 1;
+	int to_unsigned = snd_pcm_format_unsigned(format) == 1;
+	int is_float = (format == SND_PCM_FORMAT_FLOAT_LE ||
+			format == SND_PCM_FORMAT_FLOAT_BE);
+
 	/* verify and prepare the contents of areas */
 	for (chn = 0; chn < channels; chn++) {
 		if ((areas[chn].first % 8) != 0) {
@@ -61,12 +62,27 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	}
 	/* fill the channel areas */
 	while (count-- > 0) {
-		res = sin(phase) * maxval;
-		ires.i = res;
-		tmp = ires.c;
+		union {
+			float f;
+			int i;
+		} fval;
+		int res, i;
+		if (is_float) {
+			fval.f = sin(phase) * maxval;
+			res = fval.i;
+		} else
+			res = sin(phase) * maxval;
+		if (to_unsigned)
+			res ^= 1U << (format_bits - 1);
 		for (chn = 0; chn < channels; chn++) {
-			for (byte = 0; byte < (unsigned int)bps; byte++)
-				*(samples[chn] + byte) = tmp[byte];
+			/* Generate data in native endian format */
+			if (big_endian) {
+				for (i = 0; i < bps; i++)
+					*(samples[chn] + phys_bps - 1 - i) = (res >> i * 8) & 0xff;
+			} else {
+				for (i = 0; i < bps; i++)
+					*(samples[chn] + i) = (res >>  i * 8) & 0xff;
+			}
 			samples[chn] += steps[chn];
 		}
 		phase += step;
@@ -827,6 +843,13 @@ int main(int argc, char *argv[])
 			}
 			if (format == SND_PCM_FORMAT_LAST)
 				format = SND_PCM_FORMAT_S16;
+			if (!snd_pcm_format_linear(format) &&
+			    !(format == SND_PCM_FORMAT_FLOAT_LE ||
+			      format == SND_PCM_FORMAT_FLOAT_BE)) {
+				printf("Invalid (non-linear/float) format %s\n",
+				       optarg);
+				return 1;
+			}
 			break;
 		case 'v':
 			verbose = 1;

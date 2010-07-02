@@ -23,9 +23,7 @@
 #include <string.h>
 #include <sys/poll.h>
 #include <sys/mman.h>
-#ifndef ANDROID
 #include <sys/shm.h>
-#endif
 #include "pcm_local.h"
 
 size_t page_size(void)
@@ -373,7 +371,6 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			}
 			i->addr = ptr;
 			break;
-#ifndef ANDROID
 		case SND_PCM_AREA_SHM:
 			if (i->u.shm.shmid < 0) {
 				int id;
@@ -419,7 +416,6 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			}
 			i->addr = ptr;
 			break;
-#endif
 		case SND_PCM_AREA_LOCAL:
 			ptr = malloc(size);
 			if (ptr == NULL) {
@@ -500,7 +496,6 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			}
 			errno = 0;
 			break;
-#ifndef ANDROID
 		case SND_PCM_AREA_SHM:
 			if (i->u.shm.area) {
 				snd_shm_area_destroy(i->u.shm.area);
@@ -518,7 +513,6 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 				}
 			}
 			break;
-#endif
 		case SND_PCM_AREA_LOCAL:
 			free(i->addr);
 			break;

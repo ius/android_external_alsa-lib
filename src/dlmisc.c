@@ -27,7 +27,6 @@
  *
  */
 
-#define _GNU_SOURCE
 #include "list.h"
 #include "local.h"
 
@@ -54,13 +53,13 @@ void *snd_dlopen(const char *name, int mode)
 #else
 #ifdef HAVE_LIBDL
 	if (name == NULL) {
-#ifdef ANDROID
-		return RTLD_DEFAULT;
-#else
-		Dl_info dlinfo;
-		if (dladdr(snd_dlopen, &dlinfo) > 0)
-			name = dlinfo.dli_fname;
-#endif
+		static const char * self = NULL;
+		if (self == NULL) {
+			Dl_info dlinfo;
+			if (dladdr(snd_dlopen, &dlinfo) > 0)
+				self = dlinfo.dli_fname;
+		}
+		name = self;
 	}
 #endif
 #endif
@@ -86,10 +85,6 @@ int snd_dlclose(void *handle)
 		return 0;
 #endif
 #ifdef HAVE_LIBDL
-#ifdef ANDROID
-	if (handle == RTLD_DEFAULT)
-		return 0;
-#endif
 	return dlclose(handle);
 #else
 	return 0;

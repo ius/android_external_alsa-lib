@@ -153,7 +153,7 @@ static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params
 	assert(params);
 	params->buffer_size = page_size();
 	params->avail_min = 1;
-	params->no_active_sensing = 0;
+	params->no_active_sensing = 1;
 	return 0;
 }
 
@@ -987,6 +987,7 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 	return (rawmidi->ops->read)(rawmidi, buffer, size);
 }
 
+#ifndef DOC_HIDDEN
 int snd_rawmidi_conf_generic_id(const char *id)
 {
 	static const char ids[][8] = {
@@ -1002,3 +1003,4 @@ int snd_rawmidi_conf_generic_id(const char *id)
 	}
 	return 0;
 }
+#endif

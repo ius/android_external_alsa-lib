@@ -405,6 +405,19 @@ static void linear_close(void *obj)
 	free(obj);
 }
 
+static int get_supported_rates(ATTRIBUTE_UNUSED void *rate,
+			       unsigned int *rate_min, unsigned int *rate_max)
+{
+	*rate_min = SND_PCM_PLUGIN_RATE_MIN;
+	*rate_max = SND_PCM_PLUGIN_RATE_MAX;
+	return 0;
+}
+
+static void linear_dump(ATTRIBUTE_UNUSED void *rate, snd_output_t *out)
+{
+	snd_output_printf(out, "Converter: linear-interpolation\n");
+}
+
 static const snd_pcm_rate_ops_t linear_ops = {
 	.close = linear_close,
 	.init = linear_init,
@@ -414,16 +427,15 @@ static const snd_pcm_rate_ops_t linear_ops = {
 	.convert = linear_convert,
 	.input_frames = input_frames,
 	.output_frames = output_frames,
+	.version = SND_PCM_RATE_PLUGIN_VERSION,
+	.get_supported_rates = get_supported_rates,
+	.dump = linear_dump,
 };
 
-int SND_PCM_RATE_PLUGIN_ENTRY(linear) (unsigned int version, void **objp, snd_pcm_rate_ops_t *ops)
+int SND_PCM_RATE_PLUGIN_ENTRY(linear) (ATTRIBUTE_UNUSED unsigned int version,
+				       void **objp, snd_pcm_rate_ops_t *ops)
 {
 	struct rate_linear *rate;
-
-	if (version != SND_PCM_RATE_PLUGIN_VERSION) {
-		SNDERR("Invalid plugin version %x\n", version);
-		return -EINVAL;
-	}
 
 	rate = calloc(1, sizeof(*rate));
 	if (! rate)

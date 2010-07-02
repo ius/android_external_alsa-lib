@@ -442,7 +442,7 @@ static int snd_pcm_ioplug_start(snd_pcm_t *pcm)
 	int err;
 	
 	if (io->data->state != SND_PCM_STATE_PREPARED)
-		return -EBUSY;
+		return -EBADFD;
 
 	err = io->data->callback->start(io->data);
 	if (err < 0)
@@ -877,7 +877,7 @@ callback.
 Finally, the dump callback is used to print the status of the plugin.
 
 The hw_params constraints can be defined via either
-#snd_pcm_iplug_set_param_minmax() and #snd_pcm_ioplug_set_param_list()
+#snd_pcm_ioplug_set_param_minmax() and #snd_pcm_ioplug_set_param_list()
 functions after calling #snd_pcm_ioplug_create().
 The former defines the minimal and maximal acceptable values for the
 given hw_params parameter (SND_PCM_IOPLUG_HW_XXX).

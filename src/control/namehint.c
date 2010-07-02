@@ -219,6 +219,7 @@ static int try_config(struct hint_list *list,
 	const char *str;
 	int err = 0, level;
 	long dev = list->device;
+	int cleanup_res = 0;
 
 	list->device_input = -1;
 	list->device_output = -1;
@@ -244,6 +245,7 @@ static int try_config(struct hint_list *list,
 	snd_lib_error_set_handler(eh);
 	if (err < 0)
 		goto __skip_add;
+	cleanup_res = 1;
 	err = -EINVAL;
 	if (snd_config_get_type(res) != SND_CONFIG_TYPE_COMPOUND)
 		goto __cleanup;
@@ -330,6 +332,7 @@ static int try_config(struct hint_list *list,
 	    	goto __hint;
 	snd_config_delete(res);
 	res = NULL;
+	cleanup_res = 0;
 	if (strchr(buf, ':') != NULL)
 		goto __ok;
 	/* find, if all parameters have a default, */
@@ -379,7 +382,7 @@ static int try_config(struct hint_list *list,
 	      	err = hint_list_add(list, buf, buf1);
 	}
       __skip_add:
-      	if (res)
+	if (res && cleanup_res)
 	      	snd_config_delete(res);
 	if (buf1)
 		free(buf1);
@@ -450,11 +453,8 @@ static int add_card(struct hint_list *list, int card)
 		if (err == -EXDEV)
 			continue;
 		if (err < 0) {
+			list->card = card;
 			list->device = -1;
-			err = try_config(list, list->siface, str);
-		}
-		if (err < 0) {
-			list->card = -1;
 			err = try_config(list, list->siface, str);
 		}
 		if (err == -ENOMEM)
@@ -479,6 +479,29 @@ static int get_card_name(struct hint_list *list, int card)
 	if (s == NULL)
 		return -ENOMEM;
 	list->cardname = s;
+	return 0;
+}
+
+static int add_software_devices(struct hint_list *list)
+{
+	int err;
+	snd_config_t *conf, *n;
+	snd_config_iterator_t i, next;
+	const char *str;
+
+	err = snd_config_search(snd_config, list->siface, &conf);
+	if (err < 0)
+		return err;
+	snd_config_for_each(i, next, conf) {
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &str) < 0)
+			continue;
+		list->card = -1;
+		list->device = -1;
+		err = try_config(list, list->siface, str);
+		if (err == -ENOMEM)
+			return -ENOMEM;
+	}
 	return 0;
 }
 
@@ -532,6 +555,8 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 		list.iface = SND_CTL_ELEM_IFACE_SEQUENCER;
 	else if (strcmp(iface, "hwdep") == 0)
 		list.iface = SND_CTL_ELEM_IFACE_HWDEP;
+	else if (strcmp(iface, "ctl") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_MIXER;
 	else
 		return -EINVAL;
 	list.show_all = 0;
@@ -543,6 +568,7 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 		if (err >= 0)
 			err = add_card(&list, card);
 	} else {
+		add_software_devices(&list);
 		err = snd_card_next(&card);
 		if (err < 0)
 			goto __error;

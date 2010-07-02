@@ -40,6 +40,7 @@
 #include <limits.h>
 #include <alsa/asoundlib.h>
 #include "mixer_simple.h"
+#include "config.h"
 
 #ifndef DOC_HIDDEN
 
@@ -134,6 +135,7 @@ static int get_compare_weight(const char *name, unsigned int idx)
 	static const char *const names[] = {
 		"Master",
 		"Headphone",
+		"Speaker",
 		"Tone",
 		"Bass",
 		"Treble",
@@ -158,6 +160,7 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"I2S",
 		"IEC958",
 		"PC Speaker",
+		"Beep",
 		"Aux",
 		"Mono",
 		"Playback",
@@ -1450,7 +1453,14 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 		}
 		if (ctype != SND_CTL_ELEM_TYPE_BOOLEAN)
 			return 0;
+#ifdef HAVE_SOFT_FLOAT
+		/* up to 256 channels */
+		for (n = 1; n < 256; n++)
+			if (n * n == values)
+				break;
+#else
 		n = sqrt((double)values);
+#endif
 		if (n * n != values)
 			return 0;
 		values = n;

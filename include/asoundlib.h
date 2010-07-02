@@ -47,14 +47,9 @@
 #include <alsa/error.h>
 #include <alsa/conf.h>
 #include <alsa/pcm.h>
-#include <alsa/rawmidi.h>
 #include <alsa/timer.h>
 #include <alsa/hwdep.h>
 #include <alsa/control.h>
 #include <alsa/mixer.h>
-#include <alsa/seq_event.h>
-#include <alsa/seq.h>
-#include <alsa/seqmid.h>
-#include <alsa/seq_midi_event.h>
 
 #endif /* __ASOUNDLIB_H */

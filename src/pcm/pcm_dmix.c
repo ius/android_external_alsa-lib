@@ -145,8 +145,10 @@ static void dmix_server_free(snd_pcm_direct_t *dmix)
 #elif defined(__x86_64__)
 #include "pcm_dmix_x86_64.c"
 #else
+#ifndef DOC_HIDDEN
 #define mix_select_callbacks(x)	generic_mix_select_callbacks(x)
 #define dmix_supported_format generic_dmix_supported_format
+#endif
 #endif
 
 static void mix_areas(snd_pcm_direct_t *dmix,
@@ -171,6 +173,10 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 	case SND_PCM_FORMAT_S32_BE:
 		sample_size = 4;
 		do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_32;
+		break;
+	case SND_PCM_FORMAT_S24_LE:
+		sample_size = 4;
+		do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_24;
 		break;
 	case SND_PCM_FORMAT_S24_3LE:
 		sample_size = 3;
@@ -235,6 +241,10 @@ static void remix_areas(snd_pcm_direct_t *dmix,
 	case SND_PCM_FORMAT_S32_BE:
 		sample_size = 4;
 		do_remix_areas = (mix_areas_t *)dmix->u.dmix.remix_areas_32;
+		break;
+	case SND_PCM_FORMAT_S24_LE:
+		sample_size = 4;
+		do_remix_areas = (mix_areas_t *)dmix->u.dmix.remix_areas_24;
 		break;
 	case SND_PCM_FORMAT_S24_3LE:
 		sample_size = 3;
@@ -595,8 +605,8 @@ static int snd_pcm_dmix_drop(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
-	snd_pcm_direct_timer_stop(dmix);
 	dmix->state = SND_PCM_STATE_SETUP;
+	snd_pcm_direct_timer_stop(dmix);
 	return 0;
 }
 

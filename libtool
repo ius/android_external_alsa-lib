@@ -1,7 +1,7 @@
-#! /bin/sh
+#! /bin/bash
 
 # libtoolT - Provide generalized library-building support services.
-# Generated automatically by  (GNU alsa-lib 1.0.19)
+# Generated automatically by  (GNU alsa-lib 1.0.23)
 # NOTE: Changes made to this file will be lost: look at ltmain.sh.
 #
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001
@@ -30,10 +30,10 @@
 # the same distribution terms that you use for the rest of that program.
 
 # A sed program that does not truncate output.
-SED="/usr/bin/sed"
+SED="/bin/sed"
 
 # Sed that helps us avoid accidentally triggering echo(1) options like -n.
-Xsed="/usr/bin/sed -e 1s/^X//"
+Xsed="/bin/sed -e 1s/^X//"
 
 # The HP-UX ksh and POSIX shell print the target directory to stdout
 # if CDPATH is set.
@@ -44,10 +44,10 @@ available_tags=" CXX"
 
 # ### BEGIN LIBTOOL CONFIG
 
-# Libtool was configured on host alsa0:
+# Libtool was configured on host mcneil-lap-dell:
 
 # Shell to use when invoking shell scripts.
-SHELL="/bin/sh"
+SHELL="/bin/bash"
 
 # Whether or not to build shared libraries.
 build_libtool_libs=yes
@@ -66,12 +66,12 @@ fast_install=yes
 
 # The host system.
 host_alias=
-host=x86_64-suse-linux-gnu
+host=x86_64-unknown-linux-gnu
 host_os=linux-gnu
 
 # The build system.
 build_alias=
-build=x86_64-suse-linux-gnu
+build=x86_64-unknown-linux-gnu
 build_os=linux-gnu
 
 # An echo program that does not interpret backslashes.
@@ -85,7 +85,7 @@ AR_FLAGS="cru"
 LTCC="gcc"
 
 # LTCC compiler flags.
-LTCFLAGS="-O2 -fomit-frame-pointer -Wall -pipe"
+LTCFLAGS=" -D_GNU_SOURCE"
 
 # A language-specific compiler.
 CC="gcc"
@@ -94,10 +94,10 @@ CC="gcc"
 with_gcc=yes
 
 # An ERE matcher.
-EGREP="/usr/bin/grep -E"
+EGREP="/bin/grep -E"
 
 # The linker used to build libraries.
-LD="/usr/x86_64-suse-linux/bin/ld -m elf_x86_64"
+LD="/usr/bin/ld -m elf_x86_64"
 
 # Whether we need hard or soft links.
 LN_S="ln -s"
@@ -325,10 +325,10 @@ variables_saved_for_relink="PATH LD_LIBRARY_PATH LD_RUN_PATH GCC_EXEC_PREFIX COM
 link_all_deplibs=unknown
 
 # Compile-time system search path for libraries
-sys_lib_search_path_spec=" /usr/lib64/gcc/x86_64-suse-linux/4.1.2/ /usr/lib/gcc/x86_64-suse-linux/4.1.2/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../x86_64-suse-linux/lib/x86_64-suse-linux/4.1.2/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../x86_64-suse-linux/lib/../lib64/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../x86_64-suse-linux/4.1.2/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../lib64/ /lib/x86_64-suse-linux/4.1.2/ /lib/../lib64/ /usr/lib/x86_64-suse-linux/4.1.2/ /usr/lib/../lib64/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../x86_64-suse-linux/lib/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../ /lib/ /usr/lib/"
+sys_lib_search_path_spec=" /usr/lib/gcc/x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../x86_64-linux-gnu/lib/x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../x86_64-linux-gnu/lib/../lib/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib/ /lib/x86_64-linux-gnu/4.4.3/ /lib/../lib/ /usr/lib/x86_64-linux-gnu/4.4.3/ /usr/lib/../lib/ /usr/lib/x86_64-linux-gnu/x86_64-linux-gnu/4.4.3/ /usr/lib/x86_64-linux-gnu/../lib/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../x86_64-linux-gnu/lib/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../ /lib/ /usr/lib/ /usr/lib/x86_64-linux-gnu/"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/X11R6/lib64/Xaw3d /usr/X11R6/lib64 /usr/lib64/Xaw3d /usr/X11R6/lib/Xaw3d /usr/X11R6/lib /usr/lib/Xaw3d /usr/x86_64-suse-linux/lib /usr/local/lib /opt/kde3/lib /opt/gnome/lib /lib64 /lib /usr/lib64 /usr/lib /usr/local/lib64 /opt/kde3/lib64 /opt/gnome/lib64 "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/mesa /usr/lib32/mesa /usr/lib32/alsa-lib /usr/lib/alsa-lib /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""
@@ -7215,10 +7215,10 @@ disable_libs=static
 # End:
 # ### BEGIN LIBTOOL TAG CONFIG: CXX
 
-# Libtool was configured on host alsa0:
+# Libtool was configured on host mcneil-lap-dell:
 
 # Shell to use when invoking shell scripts.
-SHELL="/bin/sh"
+SHELL="/bin/bash"
 
 # Whether or not to build shared libraries.
 build_libtool_libs=yes
@@ -7237,12 +7237,12 @@ fast_install=yes
 
 # The host system.
 host_alias=
-host=x86_64-suse-linux-gnu
+host=x86_64-unknown-linux-gnu
 host_os=linux-gnu
 
 # The build system.
 build_alias=
-build=x86_64-suse-linux-gnu
+build=x86_64-unknown-linux-gnu
 build_os=linux-gnu
 
 # An echo program that does not interpret backslashes.
@@ -7256,7 +7256,7 @@ AR_FLAGS="cru"
 LTCC="gcc"
 
 # LTCC compiler flags.
-LTCFLAGS="-O2 -fomit-frame-pointer -Wall -pipe"
+LTCFLAGS=" -D_GNU_SOURCE"
 
 # A language-specific compiler.
 CC="g++"
@@ -7265,10 +7265,10 @@ CC="g++"
 with_gcc=yes
 
 # An ERE matcher.
-EGREP="/usr/bin/grep -E"
+EGREP="/bin/grep -E"
 
 # The linker used to build libraries.
-LD="/usr/x86_64-suse-linux/bin/ld -m elf_x86_64"
+LD="/usr/bin/ld -m elf_x86_64"
 
 # Whether we need hard or soft links.
 LN_S="ln -s"
@@ -7397,11 +7397,11 @@ striplib="strip --strip-unneeded"
 
 # Dependencies to place before the objects being linked to create a
 # shared library.
-predep_objects="/usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../lib64/crti.o /usr/lib64/gcc/x86_64-suse-linux/4.1.2/crtbeginS.o"
+predep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.4.3/crtbeginS.o"
 
 # Dependencies to place after the objects being linked to create a
 # shared library.
-postdep_objects="/usr/lib64/gcc/x86_64-suse-linux/4.1.2/crtendS.o /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../lib64/crtn.o"
+postdep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.4.3/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib/crtn.o"
 
 # Dependencies to place before the objects being linked to create a
 # shared library.
@@ -7413,7 +7413,7 @@ postdeps="-lstdc++ -lm -lgcc_s -lc -lgcc_s"
 
 # The library search path used internally by the compiler when linking
 # a shared library.
-compiler_lib_search_path="-L/usr/lib64/gcc/x86_64-suse-linux/4.1.2 -L/usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../x86_64-suse-linux/lib -L/usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../.."
+compiler_lib_search_path="-L/usr/lib/gcc/x86_64-linux-gnu/4.4.3 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.3 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../.. -L/usr/lib/x86_64-linux-gnu"
 
 # Method to check whether dependent libraries are shared objects.
 deplibs_check_method="pass_all"
@@ -7493,10 +7493,10 @@ variables_saved_for_relink="PATH LD_LIBRARY_PATH LD_RUN_PATH GCC_EXEC_PREFIX COM
 link_all_deplibs=unknown
 
 # Compile-time system search path for libraries
-sys_lib_search_path_spec=" /usr/lib64/gcc/x86_64-suse-linux/4.1.2/ /usr/lib/gcc/x86_64-suse-linux/4.1.2/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../x86_64-suse-linux/lib/x86_64-suse-linux/4.1.2/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../x86_64-suse-linux/lib/../lib64/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../x86_64-suse-linux/4.1.2/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../lib64/ /lib/x86_64-suse-linux/4.1.2/ /lib/../lib64/ /usr/lib/x86_64-suse-linux/4.1.2/ /usr/lib/../lib64/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../../x86_64-suse-linux/lib/ /usr/lib64/gcc/x86_64-suse-linux/4.1.2/../../../ /lib/ /usr/lib/"
+sys_lib_search_path_spec=" /usr/lib/gcc/x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../x86_64-linux-gnu/lib/x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../x86_64-linux-gnu/lib/../lib/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../x86_64-linux-gnu/4.4.3/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib/ /lib/x86_64-linux-gnu/4.4.3/ /lib/../lib/ /usr/lib/x86_64-linux-gnu/4.4.3/ /usr/lib/../lib/ /usr/lib/x86_64-linux-gnu/x86_64-linux-gnu/4.4.3/ /usr/lib/x86_64-linux-gnu/../lib/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../x86_64-linux-gnu/lib/ /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../ /lib/ /usr/lib/ /usr/lib/x86_64-linux-gnu/"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/X11R6/lib64/Xaw3d /usr/X11R6/lib64 /usr/lib64/Xaw3d /usr/X11R6/lib/Xaw3d /usr/X11R6/lib /usr/lib/Xaw3d /usr/x86_64-suse-linux/lib /usr/local/lib /opt/kde3/lib /opt/gnome/lib /lib64 /lib /usr/lib64 /usr/lib /usr/local/lib64 /opt/kde3/lib64 /opt/gnome/lib64 "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/mesa /usr/lib32/mesa /usr/lib32/alsa-lib /usr/lib/alsa-lib /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""

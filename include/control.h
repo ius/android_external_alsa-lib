@@ -174,6 +174,10 @@ typedef enum _snd_ctl_event_type {
 #define SND_CTL_TLVT_DB_LINEAR		0x0002
 /** TLV type - dB range container */
 #define SND_CTL_TLVT_DB_RANGE		0x0003
+/** TLV type - dB scale specified by min/max values */
+#define SND_CTL_TLVT_DB_MINMAX		0x0004
+/** TLV type - dB scale specified by min/max values (with mute) */
+#define SND_CTL_TLVT_DB_MINMAX_MUTE	0x0005
 
 /** Mute state */
 #define SND_CTL_TLV_DB_GAIN_MUTE	-9999999
@@ -419,6 +423,7 @@ int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr);
 void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_clear(snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_copy(snd_ctl_elem_value_t *dst, const snd_ctl_elem_value_t *src);
+int snd_ctl_elem_value_compare(snd_ctl_elem_value_t *left, const snd_ctl_elem_value_t *right);
 void snd_ctl_elem_value_get_id(const snd_ctl_elem_value_t *obj, snd_ctl_elem_id_t *ptr);
 unsigned int snd_ctl_elem_value_get_numid(const snd_ctl_elem_value_t *obj);
 snd_ctl_elem_iface_t snd_ctl_elem_value_get_interface(const snd_ctl_elem_value_t *obj);
