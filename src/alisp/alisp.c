@@ -1025,6 +1025,7 @@ static const char *obj_type_str(struct alisp_object * p)
 	case ALISP_OBJ_CONS: return "cons";
 	default: assert(0);
 	}
+	return 0; /* make compiler happy */
 }
 
 static void print_obj_lists(struct alisp_instance *instance, snd_output_t *out)
